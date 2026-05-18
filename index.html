@@ -480,7 +480,7 @@
   function playAudio() {
     const l = getLetter();
     if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
-    const audio = new Audio('audio/' + l.num + '.mp3');
+    const audio = new Audio('audio/' + l.num + '.MP3');
     currentAudio = audio;
     document.getElementById('card').classList.add('playing');
     audio.play().catch(() => {});
