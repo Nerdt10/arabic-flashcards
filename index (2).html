@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arabic Alphabet Flashcards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f4ee;
+      --surface: #ffffff;
+      --surface2: #f0ece3;
+      --text: #1a1714;
+      --text2: #6b6560;
+      --text3: #a09890;
+      --accent: #b85c2a;
+      --accent-light: #f5e8e0;
+      --accent-dark: #8a4020;
+      --border: rgba(0,0,0,0.08);
+      --border2: rgba(0,0,0,0.14);
+      --green: #2a7a4b;
+      --green-light: #e0f0e8;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    header p {
+      font-size: 0.875rem;
+      color: var(--text2);
+      margin-top: 4px;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Mode selector */
+    .mode-row {
+      display: flex;
+      gap: 6px;
+      background: var(--surface2);
+      padding: 4px;
+      border-radius: 999px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 7px 0;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text2);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .mode-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Progress */
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width 0.35s ease;
+    }
+
+    .progress-label {
+      font-size: 0.8rem;
+      color: var(--text2);
+      min-width: 44px;
+      text-align: right;
+    }
+
+    /* Flashcard */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 2.5rem 2rem 2rem;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s, box-shadow 0.12s;
+      user-select: none;
+    }
+
+    .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+    .card:active { transform: scale(0.985); }
+
+    .card-arabic {
+      font-family: 'Scheherazade New', serif;
+      font-size: 96px;
+      line-height: 1;
+      color: var(--text);
+      direction: rtl;
+    }
+
+    .card-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-trans {
+      font-size: 0.875rem;
+      color: var(--text2);
+    }
+
+    .card-hint {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      font-size: 0.72rem;
+      color: var(--text3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .playing-ring {
+      position: absolute;
+      inset: -3px;
+      border-radius: calc(var(--radius) + 3px);
+      border: 2px solid var(--accent);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .card.playing .playing-ring { opacity: 1; }
+
+    /* Letter forms */
+    .forms-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .form-cell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 6px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .form-cell.highlight {
+      background: var(--accent-light);
+      border-color: var(--accent);
+    }
+
+    .form-arabic {
+      font-family: 'Scheherazade New', serif;
+      font-size: 26px;
+      color: var(--text);
+      direction: rtl;
+    }
+
+    .form-label {
+      font-size: 0.68rem;
+      color: var(--text2);
+      text-align: center;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 22px;
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn:hover { background: var(--surface2); }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+
+    .btn-play {
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border-radius: 50%;
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-size: 1.1rem;
+    }
+
+    .btn-play:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+    /* Auto-play settings */
+    .auto-settings {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .auto-settings.visible { display: flex; }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--text2);
+    }
+
+    .setting-row label { min-width: 90px; }
+
+    .setting-row input[type=range] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+
+    .setting-row select {
+      padding: 4px 8px;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+
+    .setting-val {
+      min-width: 28px;
+      text-align: right;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* Completed */
+    .complete-banner {
+      background: var(--green-light);
+      border: 1px solid rgba(42,122,75,0.2);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--green);
+      font-weight: 500;
+      display: none;
+    }
+
+    .complete-banner.visible { display: block; }
+
+    svg.icon {
+      width: 16px; height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 420px) {
+      .card-arabic { font-size: 72px; }
+      .card-name { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Arabic Alphabet</h1>
+  <p>28 letters — tap a card to hear it</p>
+</header>
+
+<div class="wrapper">
+
+  <div class="mode-row">
+    <button class="mode-btn active" onclick="setMode('sequential', this)">In order</button>
+    <button class="mode-btn" onclick="setMode('random', this)">Random</button>
+    <button class="mode-btn" onclick="setMode('auto', this)">Auto-play</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:3.57%"></div>
+    </div>
+    <span class="progress-label" id="counter">1 / 28</span>
+  </div>
+
+  <div class="card" id="card" onclick="handleCardClick()">
+    <div class="playing-ring"></div>
+    <div class="card-arabic" id="mainLetter">ا</div>
+    <div class="card-name" id="letterName">Alif</div>
+    <div class="card-trans" id="letterTrans">/ ʔ / — vowel carrier</div>
+    <div class="card-hint">
+      <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      tap to hear
+    </div>
+  </div>
+
+  <div class="forms-grid" id="formsGrid"></div>
+
+  <div class="controls">
+    <button class="btn" id="prevBtn" onclick="prevLetter()">
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Prev
+    </button>
+    <button class="btn btn-play" id="playBtn" onclick="playAudio()" aria-label="Play audio">
+      <svg class="icon" style="width:20px;height:20px;fill:white;stroke:none" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </button>
+    <button class="btn" id="nextBtn" onclick="nextLetter()">
+      Next
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+
+  <div class="auto-settings" id="autoSettings">
+    <div class="setting-row">
+      <label>Delay per card</label>
+      <input type="range" min="1" max="8" step="1" value="3" id="speedSlider" oninput="updateSpeed(this.value)" />
+      <span class="setting-val" id="speedVal">3s</span>
+    </div>
+    <div class="setting-row">
+      <label>Repeat each</label>
+      <select onchange="setRepeat(this.value)">
+        <option value="1">1×</option>
+        <option value="2">2×</option>
+        <option value="3" selected>3×</option>
+        <option value="5">5×</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="complete-banner" id="completeBanner">
+    ✓ All 28 letters complete! Tap "In order" or "Random" to go again.
+  </div>
+
+</div>
+
+<script>
+  const letters = [
+    { num:1,  ar:'ا', name:'Alif',       trans:'/ ʔ / — vowel carrier',        forms:['ا','ا','ا','ا'] },
+    { num:2,  ar:'ب', name:'Ba',         trans:'/ b / — like "b" in boy',       forms:['ب','بـ','ـبـ','ـب'] },
+    { num:3,  ar:'ت', name:'Ta',         trans:'/ t / — like "t" in top',       forms:['ت','تـ','ـتـ','ـت'] },
+    { num:4,  ar:'ث', name:'Tha',        trans:'/ θ / — like "th" in three',    forms:['ث','ثـ','ـثـ','ـث'] },
+    { num:5,  ar:'ج', name:'Jim',        trans:'/ dʒ / — like "j" in jam',      forms:['ج','جـ','ـجـ','ـج'] },
+    { num:6,  ar:'ح', name:'Ha',         trans:'/ ħ / — breathy "h"',           forms:['ح','حـ','ـحـ','ـح'] },
+    { num:7,  ar:'خ', name:'Kha',        trans:'/ x / — like "ch" in Bach',     forms:['خ','خـ','ـخـ','ـخ'] },
+    { num:8,  ar:'د', name:'Dal',        trans:'/ d / — like "d" in dog',       forms:['د','د','ـد','ـد'] },
+    { num:9,  ar:'ذ', name:'Dhal',       trans:'/ ð / — like "th" in the',      forms:['ذ','ذ','ـذ','ـذ'] },
+    { num:10, ar:'ر', name:'Ra',         trans:'/ r / — rolled "r"',            forms:['ر','ر','ـر','ـر'] },
+    { num:11, ar:'ز', name:'Zay',        trans:'/ z / — like "z" in zoo',       forms:['ز','ز','ـز','ـز'] },
+    { num:12, ar:'س', name:'Sin',        trans:'/ s / — like "s" in sun',       forms:['س','سـ','ـسـ','ـس'] },
+    { num:13, ar:'ش', name:'Shin',       trans:'/ ʃ / — like "sh" in shoe',     forms:['ش','شـ','ـشـ','ـش'] },
+    { num:14, ar:'ص', name:'Sad',        trans:'/ sˤ / — heavy "s"',            forms:['ص','صـ','ـصـ','ـص'] },
+    { num:15, ar:'ض', name:'Dad',        trans:'/ dˤ / — heavy "d"',            forms:['ض','ضـ','ـضـ','ـض'] },
+    { num:16, ar:'ط', name:'Ta (heavy)', trans:'/ tˤ / — heavy "t"',            forms:['ط','طـ','ـطـ','ـط'] },
+    { num:17, ar:'ظ', name:'Dha',        trans:'/ ðˤ / — heavy "dh"',           forms:['ظ','ظـ','ـظـ','ـظ'] },
+    { num:18, ar:'ع', name:'Ayn',        trans:"/ ʕ / — voiced pharyngeal",     forms:['ع','عـ','ـعـ','ـع'] },
+    { num:19, ar:'غ', name:'Ghayn',      trans:'/ ɣ / — like French "r"',       forms:['غ','غـ','ـغـ','ـغ'] },
+    { num:20, ar:'ف', name:'Fa',         trans:'/ f / — like "f" in fan',       forms:['ف','فـ','ـفـ','ـف'] },
+    { num:21, ar:'ق', name:'Qaf',        trans:'/ q / — deep back "k"',         forms:['ق','قـ','ـقـ','ـق'] },
+    { num:22, ar:'ك', name:'Kaf',        trans:'/ k / — like "k" in kite',      forms:['ك','كـ','ـكـ','ـك'] },
+    { num:23, ar:'ل', name:'Lam',        trans:'/ l / — like "l" in lamp',      forms:['ل','لـ','ـلـ','ـل'] },
+    { num:24, ar:'م', name:'Mim',        trans:'/ m / — like "m" in moon',      forms:['م','مـ','ـمـ','ـم'] },
+    { num:25, ar:'ن', name:'Nun',        trans:'/ n / — like "n" in noon',      forms:['ن','نـ','ـنـ','ـن'] },
+    { num:26, ar:'ه', name:'Ha',         trans:'/ h / — like "h" in hat',       forms:['ه','هـ','ـهـ','ـه'] },
+    { num:27, ar:'و', name:'Waw',        trans:'/ w / or / uː / — "w" or long "oo"', forms:['و','و','ـو','ـو'] },
+    { num:28, ar:'ي', name:'Ya',         trans:'/ j / or / iː / — "y" or long "ee"', forms:['ي','يـ','ـيـ','ـي'] },
+  ];
+
+  const formLabels = ['isolated','initial','medial','final'];
+
+  let currentIndex = 0;
+  let mode = 'sequential';
+  let order = letters.map((_,i)=>i);
+  let autoTimer = null;
+  let autoDelay = 3000;
+  let repeatCount = 3;
+  let autoRepeatsDone = 0;
+  let currentAudio = null;
+
+  function getLetter() { return letters[order[currentIndex]]; }
+
+  function render() {
+    const l = getLetter();
+    document.getElementById('mainLetter').textContent = l.ar;
+    document.getElementById('letterName').textContent = l.name;
+    document.getElementById('letterTrans').textContent = l.trans;
+    document.getElementById('counter').textContent = (currentIndex + 1) + ' / 28';
+    document.getElementById('progressFill').style.width = ((currentIndex + 1) / 28 * 100) + '%';
+    document.getElementById('prevBtn').disabled = currentIndex === 0;
+    document.getElementById('completeBanner').classList.remove('visible');
+
+    const grid = document.getElementById('formsGrid');
+    grid.innerHTML = '';
+    l.forms.forEach((f, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'form-cell' + (i === 0 ? ' highlight' : '');
+      cell.innerHTML = `<span class="form-arabic">${f}</span><span class="form-label">${formLabels[i]}</span>`;
+      grid.appendChild(cell);
+    });
+  }
+
+  function playAudio() {
+    const l = getLetter();
+    if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+    const audio = new Audio('audio/' + l.num + '.mp3');
+    currentAudio = audio;
+    document.getElementById('card').classList.add('playing');
+    audio.play().catch(() => {});
+    audio.onended = () => document.getElementById('card').classList.remove('playing');
+    audio.onerror = () => document.getElementById('card').classList.remove('playing');
+  }
+
+  function handleCardClick() { playAudio(); }
+
+  function nextLetter() {
+    if (currentIndex < 27) {
+      currentIndex++;
+      render();
+      if (mode === 'auto') playAudio();
+    } else {
+      stopAuto();
+      document.getElementById('completeBanner').classList.add('visible');
+    }
+  }
+
+  function prevLetter() {
+    if (currentIndex > 0) { currentIndex--; render(); }
+  }
+
+  function setMode(m, btn) {
+    mode = m;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('autoSettings').classList.toggle('visible', m === 'auto');
+    document.getElementById('completeBanner').classList.remove('visible');
+
+    stopAuto();
+    autoRepeatsDone = 0;
+
+    if (m === 'random') {
+      order = shuffle([...Array(28).keys()]);
+    } else {
+      order = letters.map((_,i) => i);
+    }
+    currentIndex = 0;
+    render();
+
+    if (m === 'auto') {
+      playAudio();
+      startAutoTimer();
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function startAutoTimer() {
+    stopAuto();
+    autoTimer = setInterval(() => {
+      autoRepeatsDone++;
+      if (autoRepeatsDone < repeatCount) {
+        playAudio();
+      } else {
+        autoRepeatsDone = 0;
+        if (currentIndex < 27) {
+          currentIndex++;
+          render();
+          playAudio();
+        } else {
+          stopAuto();
+          document.getElementById('completeBanner').classList.add('visible');
+        }
+      }
+    }, autoDelay);
+  }
+
+  function stopAuto() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  }
+
+  function updateSpeed(v) {
+    autoDelay = v * 1000;
+    document.getElementById('speedVal').textContent = v + 's';
+    if (mode === 'auto') { startAutoTimer(); }
+  }
+
+  function setRepeat(v) {
+    repeatCount = parseInt(v);
+    autoRepeatsDone = 0;
+  }
+
+  render();
+</script>
+</body>
+</html>
