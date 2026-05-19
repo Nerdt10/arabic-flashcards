@@ -509,8 +509,8 @@ function loadLevel(li,si){
   stopAuto();stopAudio();
   curLvl=li;curSub=si;curIdx=0;
   const lv=LEVELS[li],sl=lv.subs[si];
-  document.getElementById('topTitle').textContent=lv.label;
-  document.getElementById('topDesc').textContent=sl.badge+' — '+sl.label+': '+sl.desc;
+  document.getElementById('topTitle').textContent=lv.label.replace(/^\d+\.\s*/,'');
+  document.getElementById('topDesc').textContent=sl.label+' — '+sl.desc;
   
   updateSidebar();
   resetOrder();
