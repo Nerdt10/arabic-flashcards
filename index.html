@@ -594,7 +594,7 @@ function render(){
   if(letterMode){letterMode.classList.remove('hidden');}
   // show video button only on alphabet section (level 0, sublevels 0 and 1) where we have MP3/video files
   const videoBtn=document.getElementById('videoBtn');
-  if(videoBtn){videoBtn.style.display=(curLvl===0&&(curSub===0||curSub===1)&&getCard().num)?'flex':'none';}
+  if(videoBtn){videoBtn.style.display=(curLvl===0&&(curSub===0||curSub===1)&&getCard().num&&VIDEO_MAP[getCard().num])?'flex':'none';}
 
   const rev=document.getElementById('cardReveal');
   const hint=document.getElementById('cardHint');
@@ -637,6 +637,9 @@ function stopAudio(){
 }
 
 const AUDIO_MAP = {1: "01_alef.mp3", 2: "02_ba.mp3", 3: "03_ta.mp3", 4: "04_tha.mp3", 5: "05_jeem.mp3", 6: "06_ha.mp3", 7: "07_kha.mp3", 8: "08_dal.mp3", 9: "09_thal.mp3", 10: "10_ra.mp3", 11: "11_zay.mp3", 12: "12_seen.mp3", 13: "13_sheen.mp3", 14: "14_sad.mp3", 15: "15_dad.mp3", 16: "16_ta2.mp3", 17: "17_dha.mp3", 18: "18_ain.mp3", 19: "19_ghain.mp3", 20: "20_fa.mp3", 21: "21_qaf.mp3", 23: "23_lam.mp3", 25: "25_noon.mp3", 26: "26_ha2.mp3", 27: "27_waw.mp3", 28: "28_ya.mp3"};
+
+// Video files confirmed present — add more numbers as you upload them
+const VIDEO_MAP = {1:"01_alef.mp4", 2:"02_ba.mp4", 6:"06_ha.mp4", 7:"07_kha.mp4", 8:"08_dal.mp4", 9:"09_thal.mp4", 10:"10_ra.mp4", 11:"11_zay.mp4", 12:"12_seen.mp4", 13:"13_sheen.mp4"};
 
 function playAudio(){
   stopAudio();
@@ -688,7 +691,7 @@ function toggleVideo(e){
     videoMode.classList.add('active');
     const card=getCard();
     if(card.num){
-      const src='video/'+AUDIO_MAP[card.num].replace('.mp3','.mp4');
+      const src='video/'+VIDEO_MAP[card.num];
       document.getElementById('cardVideoSrc').src=src;
       video.load();
       video.play().catch(()=>{});
