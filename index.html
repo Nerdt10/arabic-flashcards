@@ -94,7 +94,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .progress-label{font-size:0.75rem;color:var(--text2);min-width:46px;text-align:right;font-weight:600;}
 
 /* FLASHCARD */
-.flashcard{background:var(--white);border:1.5px solid var(--border);border-radius:10px;width:100%;min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:1.8rem 1.5rem 1.5rem;cursor:pointer;position:relative;transition:border-color 0.2s,box-shadow 0.2s;user-select:none;}
+.flashcard{background:var(--white);border:1.5px solid var(--border);border-radius:10px;width:100%;min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:1.8rem 1.5rem 1.5rem;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;user-select:none;}
 .flashcard:hover{border-color:var(--blue-dark);box-shadow:0 2px 12px rgba(41,128,185,0.08);}
 .flashcard:active{transform:scale(0.99);}
 .flashcard.playing{border-color:var(--orange);box-shadow:0 0 0 3px rgba(230,126,34,0.12);}
@@ -108,6 +108,16 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .card-name{font-size:1.1rem;font-weight:700;color:var(--blue-dark);text-align:center;}
 .card-trans{font-size:0.82rem;color:var(--text2);text-align:center;}
 .card-hint{position:absolute;bottom:10px;right:14px;font-size:0.7rem;color:var(--text3);display:flex;align-items:center;gap:4px;}
+.card-video-btn{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:6px;border:1.5px solid var(--border2);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;color:var(--orange);}
+.card-video-btn:hover{background:var(--orange-light);border-color:var(--orange);}
+.card-video-mode{display:none;flex-direction:column;align-items:stretch;position:absolute;inset:0;border-radius:10px;overflow:hidden;z-index:1;background:#111;}
+.card-video-mode.active{display:flex;}
+.card-letter-mode{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;}
+.card-letter-mode.hidden{display:none;}
+.video-player{width:100%;flex:1;background:#111;overflow:hidden;position:relative;display:flex;}
+.video-player video{width:100%;height:100%;display:block;object-fit:contain;flex:1;}
+.video-close{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+.video-close:hover{background:rgba(0,0,0,0.75);}
 .card-parts{display:flex;gap:14px;direction:rtl;flex-wrap:wrap;justify-content:center;}
 
 /* FORMS GRID — clickable */
@@ -173,17 +183,36 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
       <span class="progress-label" id="pLabel">1 / 1</span>
     </div>
 
-    <div class="flashcard" id="card" onclick="handleClick()">
+    <div class="flashcard" id="card">
       <div class="card-badge" id="cardBadge"></div>
-      <div class="card-arabic" id="cardAr"></div>
-      <div class="card-reveal hidden" id="cardReveal">
-        <div class="card-parts" id="cardParts"></div>
-        <div class="card-name" id="cardName"></div>
-        <div class="card-trans" id="cardTrans"></div>
+
+      <!-- video icon button — only shown in alphabet section -->
+      <button class="card-video-btn" id="videoBtn" onclick="toggleVideo(event)" aria-label="Watch pronunciation" style="display:none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      </button>
+
+      <!-- normal letter mode -->
+      <div class="card-letter-mode" id="letterMode" onclick="handleClick()">
+        <div class="card-arabic" id="cardAr"></div>
+        <div class="card-reveal hidden" id="cardReveal">
+          <div class="card-parts" id="cardParts"></div>
+          <div class="card-name" id="cardName"></div>
+          <div class="card-trans" id="cardTrans"></div>
+        </div>
+        <div class="card-hint" id="cardHint">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          tap to hear
+        </div>
       </div>
-      <div class="card-hint" id="cardHint">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-        tap to hear
+
+      <!-- video mode — replaces card content -->
+      <div class="card-video-mode" id="videoMode">
+        <div class="video-player">
+          <button class="video-close" onclick="toggleVideo(event)" aria-label="Close video" style="position:absolute;top:10px;right:10px;z-index:3;">&#x2715;</button>
+          <video id="cardVideo" controls preload="none" style="width:100%;height:100%;object-fit:contain;display:block;flex:1;">
+            <source id="cardVideoSrc" src="" type="video/mp4"/>
+          </video>
+        </div>
       </div>
     </div>
 
@@ -379,9 +408,9 @@ const LEVELS = [
     {id:'s11',label:'The Alphabet',desc:'All 28 letters — isolated form',badge:'1.1',showForms:true,
       cards:L.map(l=>({ar:l.ar,nm:l.nm,tr:l.tr,num:l.n,forms:l.forms}))},
     {id:'s12',label:'Different Shapes',desc:'All 4 forms of each letter (initial, medial, final)',badge:'1.2',showForms:true,
-      cards:L.map(l=>({ar:l.forms[1],nm:l.nm+' — initial',tr:'start of a word',forms:l.forms}))
-        .concat(L.map(l=>({ar:l.forms[2],nm:l.nm+' — medial',tr:'middle of a word',forms:l.forms})))
-        .concat(L.map(l=>({ar:l.forms[3],nm:l.nm+' — final',tr:'end of a word',forms:l.forms})))},
+      cards:L.map(l=>({ar:l.forms[1],nm:l.nm+' — initial',tr:'start of a word',forms:l.forms,num:l.n}))
+        .concat(L.map(l=>({ar:l.forms[2],nm:l.nm+' — medial',tr:'middle of a word',forms:l.forms,num:l.n})))
+        .concat(L.map(l=>({ar:l.forms[3],nm:l.nm+' — final',tr:'end of a word',forms:l.forms,num:l.n})))},
     {id:'s13',label:'Reading Practice',desc:'Letter combinations from the textbook (section 1.3)',badge:'1.3',showForms:false,reading:true,
       cards:sect13.map(w=>({ar:w,nm:w,tr:'read aloud',tts:w,sz:w.length>3?'sm':''}))},
   ]},
@@ -474,7 +503,7 @@ function buildSidebar(){
     block.className='section-block'+(li===0?' open':'');
     const lDiv=document.createElement('div');
     lDiv.className='sidebar-level'+(li===0?' active':'');
-    const lvLabel=lv.label.replace(/^\d+\.\s*/,'');lDiv.innerHTML=`<div class="level-num">${li+1}</div><div class="level-text"><span>${lvLabel}</span><small>${lv.desc}</small></div>`;
+    const lvLabel=lv.label.replace(/^\d+\.\s*/,'');lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}</span><small>${lv.desc}</small></div>`;
     lDiv.onclick=()=>{loadLevel(li,0);};
     block.appendChild(lDiv);
     const slDiv=document.createElement('div');
@@ -556,12 +585,24 @@ function render(){
   document.getElementById('cardTrans').textContent=sl.reading?'tap to hear':( card.tr||'');
 
   // reset reveal
+  // reset video mode
+  const video=document.getElementById('cardVideo');
+  if(video){video.pause();video.currentTime=0;}
+  const videoMode=document.getElementById('videoMode');
+  const letterMode=document.getElementById('letterMode');
+  if(videoMode){videoMode.classList.remove('active');}
+  if(letterMode){letterMode.classList.remove('hidden');}
+  // show video button only on alphabet section (level 0, sublevels 0 and 1) where we have MP3/video files
+  const videoBtn=document.getElementById('videoBtn');
+  if(videoBtn){videoBtn.style.display=(curLvl===0&&(curSub===0||curSub===1)&&getCard().num)?'flex':'none';}
+
   const rev=document.getElementById('cardReveal');
   const hint=document.getElementById('cardHint');
   if(sl.reading){
     rev.classList.remove('hidden');
-    hint.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> tap to hear';
+    hint.style.display='none';
   } else {
+    hint.style.display='flex';
     rev.classList.add('hidden');
     hint.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> tap to hear';
   }
@@ -572,7 +613,8 @@ function render(){
   if(sl.showForms&&card.forms){
     ['isolated','initial','medial','final'].forEach((lb,i)=>{
       const c=document.createElement('div');
-      c.className='form-cell'+(i===0?' hl':'');
+      const isActive=card.forms[i]===card.ar;
+      c.className='form-cell'+(isActive?' hl':'');
       c.innerHTML=`<span class="form-arabic">${card.forms[i]}</span><span class="form-label">${lb}</span>`;
       c.onclick=(e)=>{
         e.stopPropagation();
@@ -602,7 +644,7 @@ function playAudio(){
   const sl=getSL();
   const cardEl=document.getElementById('card');
   // Level 1 sublevel 0 = use MP3 files
-  if(curLvl===0&&curSub===0&&card.num&&AUDIO_MAP[card.num]){
+  if(curLvl===0&&card.num&&AUDIO_MAP[card.num]){
     const a=new Audio('audio/'+AUDIO_MAP[card.num]);
     curAudio=a;
     cardEl.classList.add('playing');
@@ -627,6 +669,31 @@ function tts(card){
   cardEl.classList.add('playing');
   utt.onend=()=>cardEl.classList.remove('playing');
   window.speechSynthesis.speak(utt);
+}
+
+function toggleVideo(e){
+  e.stopPropagation();
+  const letterMode=document.getElementById('letterMode');
+  const videoMode=document.getElementById('videoMode');
+  const video=document.getElementById('cardVideo');
+  const isVideoMode=videoMode.classList.contains('active');
+  if(isVideoMode){
+    video.pause();
+    video.currentTime=0;
+    videoMode.classList.remove('active');
+    letterMode.classList.remove('hidden');
+  } else {
+    stopAudio();
+    letterMode.classList.add('hidden');
+    videoMode.classList.add('active');
+    const card=getCard();
+    if(card.num){
+      const src='video/'+AUDIO_MAP[card.num].replace('.mp3','.mp4');
+      document.getElementById('cardVideoSrc').src=src;
+      video.load();
+      video.play().catch(()=>{});
+    }
+  }
 }
 
 function handleClick(){
