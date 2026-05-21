@@ -31,7 +31,7 @@
 body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text);display:flex;min-height:100vh;overflow:hidden;}
 
 /* SIDEBAR */
-.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:#fff;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width 0.25s ease,min-width 0.25s ease;}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:#fff;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width 0.25s ease,min-width 0.25s ease;min-height:0;}
 .sidebar.collapsed{width:0;min-width:0;overflow:hidden;}
 .sidebar-logo{padding:12px 14px 8px;border-bottom:1px solid #e0e0e0;background:#fff;text-align:center;}
 .sidebar-logo h1{font-size:0.82rem;font-weight:700;color:#222;line-height:1.3;}
@@ -59,6 +59,11 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .sublevel-item:first-child{border-top:none;}
 .sublevel-item:hover{background:#efefef;color:#333;}
 .sublevel-item.active{color:var(--blue-dark);font-weight:700;background:#fff;border-left:2px solid var(--blue-dark);padding-left:30px;}
+
+/* DOWNLOAD LINK */
+.sidebar-download{display:block;margin-top:auto;padding:14px 16px;background:var(--blue);color:#fff;font-size:0.78rem;font-weight:600;text-align:center;text-decoration:none;transition:background 0.15s;cursor:pointer;border-top:1px solid #d0d0d0;flex-shrink:0;white-space:nowrap;}
+.sidebar-download:hover{background:var(--blue-dark);}
+.sidebar-download svg{display:inline-block;vertical-align:middle;margin-right:6px;margin-top:-2px;}
 
 /* HAMBURGER */
 .hamburger{background:none;border:none;cursor:pointer;padding:6px 8px;display:flex;flex-direction:column;gap:5px;flex-shrink:0;align-items:center;justify-content:center;}
@@ -136,7 +141,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .btn:hover{border-color:var(--blue);color:var(--blue);}
 .btn:active{transform:scale(0.96);}
 .btn:disabled{opacity:0.3;cursor:default;}
-.btn-play{width:48px;height:48px;padding:0;border-radius:50%;background:var(--orange);border-color:var(--orange);color:#fff;font-size:1rem;}
+.btn-play{width:52px;height:52px;padding:0;border-radius:50%;background:var(--orange);border-color:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;}
 .btn-play:hover{background:var(--orange-dark);border-color:var(--orange-dark);color:#fff;}
 
 /* AUTO SETTINGS */
@@ -217,7 +222,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 
     <div class="controls">
       <button class="btn" id="prevBtn" onclick="prev()">&#8592; Prev</button>
-      <button class="btn btn-play" id="playBtn" onclick="handlePlayBtn()" aria-label="Play">&#9654;</button>
+      <button class="btn btn-play" id="playBtn" onclick="handlePlayBtn()" aria-label="Play"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
       <button class="btn" id="nextBtn" onclick="next()">Next &#8594;</button>
     </div>
 
@@ -520,6 +525,14 @@ function buildSidebar(){
     block.appendChild(slDiv);
     sb.appendChild(block);
   });
+
+  // sticky download link pinned to bottom
+  const dl=document.createElement('a');
+  dl.className='sidebar-download';
+  dl.href='workbook.pdf';
+  dl.setAttribute('download','Ijaada_Arabic_Reading_Proficiency.pdf');
+  dl.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;margin-top:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Workbook`;
+  sb.appendChild(dl);
 }
 
 function updateSidebar(){
@@ -600,14 +613,10 @@ function render(){
   if(videoBtn){videoBtn.style.display=(curLvl===0&&(curSub===0||curSub===1)&&getCard().num&&VIDEO_MAP[getCard().num])?'flex':'none';}
 
   const rev=document.getElementById('cardReveal');
-  const hint=document.getElementById('cardHint');
   if(sl.reading){
     rev.classList.remove('hidden');
-    hint.style.display='none';
   } else {
-    hint.style.display='flex';
     rev.classList.add('hidden');
-    hint.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> tap to hear';
   }
 
   // forms grid
@@ -705,13 +714,14 @@ function toggleVideo(e){
 function updatePlayBtn(){
   const btn=document.getElementById('playBtn');
   if(!btn) return;
-  // pause icon = two vertical bars, play = triangle
-  if(mode==='auto'&&autoTimer){
-    btn.innerHTML='&#9646;&#9646;';
-    btn.title='Pause';
+  const sl=getSL();
+  // only show pause on reading practice sections in auto mode
+  if(mode==='auto'&&autoTimer&&sl.reading){
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="4" y="3" width="5" height="18" rx="1"/><rect x="15" y="3" width="5" height="18" rx="1"/></svg>';
+    btn.setAttribute('aria-label','Pause');
   } else {
-    btn.innerHTML='&#9654;';
-    btn.title='Play';
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>';
+    btn.setAttribute('aria-label','Play');
   }
 }
 
@@ -751,7 +761,7 @@ function next(){
   hideReveal();
   const cards=getCards();
   if(curIdx<cards.length-1){curIdx++;render();if(mode==='auto')playAudio();}
-  else{stopAuto();updatePlayBtn();document.getElementById('doneBanner').classList.add('vis');}
+  else{stopAuto();updatePlayBtn();document.getElementById('doneBanner').classList.add('vis');launchConfetti();}
 }
 function prev(){
   stopAudio();
@@ -788,6 +798,89 @@ function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.ra
 window.speechSynthesis&&window.speechSynthesis.getVoices();
 buildSidebar();
 loadLevel(0,0);
+</script>
+
+<canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:none;"></canvas>
+
+<script>
+// ── CONFETTI ────────────────────────────────────────────────────────────────
+(function(){
+  const canvas=document.getElementById('confetti-canvas');
+  const ctx=canvas.getContext('2d');
+  let pieces=[];
+  let animId=null;
+  const COLORS=['#e67e22','#2980b9','#27ae60','#f1c40f','#e74c3c','#9b59b6','#1abc9c','#fff'];
+
+  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+  window.addEventListener('resize',resize);
+
+  // Volcano burst — shoots up and spreads outward from bottom center
+  function burst(x, y){
+    const count = 160;
+    for(let i=0;i<count;i++){
+      // angle range: spread upward in a cone (-160deg to -20deg in screen coords)
+      const spread = (Math.random()-0.5)*2.4; // ~140 degree cone upward
+      const angle = -Math.PI/2 + spread;      // mostly upward
+      const speed = Math.random()*28+14;       // fast launch
+      pieces.push({
+        x, y,
+        vx: Math.cos(angle)*speed,
+        vy: Math.sin(angle)*speed,
+        w: Math.random()*16+8,
+        h: Math.random()*7+4,
+        color: COLORS[Math.floor(Math.random()*COLORS.length)],
+        tiltAngle: Math.random()*Math.PI*2,
+        tiltSpeed: (Math.random()-0.5)*0.35,
+        gravity: 0.28,
+        life: 1,
+        decay: Math.random()*0.006+0.003,
+      });
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      ctx.save();
+      ctx.globalAlpha=p.life;
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.tiltAngle);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+  }
+
+  function update(){
+    pieces.forEach(p=>{
+      p.x+=p.vx;
+      p.y+=p.vy;
+      p.vy+=p.gravity; // gravity pulls down
+      p.vx*=0.98;      // slight air resistance
+      p.tiltAngle+=p.tiltSpeed;
+      p.life-=p.decay;
+    });
+    pieces=pieces.filter(p=>p.life>0);
+  }
+
+  function loop(){
+    draw();update();
+    if(pieces.length>0){animId=requestAnimationFrame(loop);}
+    else{canvas.style.display='none';}
+  }
+
+  window.launchConfetti=function(){
+    resize();
+    canvas.style.display='block';
+    pieces=[];
+    if(animId) cancelAnimationFrame(animId);
+    // shoot from bottom center of screen
+    const x=canvas.width*0.5;
+    const y=canvas.height;
+    burst(x, y);
+    loop();
+  };
+})();
 </script>
 </body>
 </html>
