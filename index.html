@@ -559,7 +559,6 @@ function loadLevel(li,si){
   updateSidebar();
   resetOrder();
   render();
-  if(mode==='auto'){playAudio();startAuto();}
   updatePlayBtn();
 }
 
@@ -714,9 +713,7 @@ function toggleVideo(e){
 function updatePlayBtn(){
   const btn=document.getElementById('playBtn');
   if(!btn) return;
-  const sl=getSL();
-  // only show pause on reading practice sections in auto mode
-  if(mode==='auto'&&autoTimer&&sl.reading){
+  if(mode==='auto'&&autoTimer){
     btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><rect x="4" y="3" width="5" height="18" rx="1"/><rect x="15" y="3" width="5" height="18" rx="1"/></svg>';
     btn.setAttribute('aria-label','Pause');
   } else {
@@ -777,7 +774,7 @@ function setMode(m,btn){
   document.getElementById('autoBox').classList.toggle('vis',m==='auto');
   document.getElementById('doneBanner').classList.remove('vis');
   curIdx=0;resetOrder();render();
-  if(m==='auto'){playAudio();startAuto();updatePlayBtn();}
+  updatePlayBtn(); // stays as play until user clicks
 }
 
 function startAuto(){
@@ -814,14 +811,14 @@ loadLevel(0,0);
   function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
   window.addEventListener('resize',resize);
 
-  // Volcano burst — shoots up and spreads outward from bottom center
-  function burst(x, y){
-    const count = 160;
+  // V-shape fan from bottom center — wide upward cone, all from one point
+  function burst(x, y, count){
+    count = count||160;
     for(let i=0;i<count;i++){
-      // angle range: spread upward in a cone (-160deg to -20deg in screen coords)
-      const spread = (Math.random()-0.5)*2.4; // ~140 degree cone upward
-      const angle = -Math.PI/2 + spread;      // mostly upward
-      const speed = Math.random()*28+14;       // fast launch
+      // spread across a wide V: from ~-20deg to ~-160deg (all upward, fan shape)
+      const t = i / count;
+      const angle = -Math.PI + t * Math.PI + (Math.random()-0.5)*0.15;
+      const speed = Math.random()*22+10;
       pieces.push({
         x, y,
         vx: Math.cos(angle)*speed,
@@ -874,10 +871,12 @@ loadLevel(0,0);
     canvas.style.display='block';
     pieces=[];
     if(animId) cancelAnimationFrame(animId);
-    // shoot from bottom center of screen
     const x=canvas.width*0.5;
     const y=canvas.height;
-    burst(x, y);
+    // stagger into 3 small waves so it doesn't all explode at once
+    burst(x, y, 50);
+    setTimeout(()=>burst(x, y, 40), 120);
+
     loop();
   };
 })();
