@@ -199,10 +199,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
           <div class="card-name" id="cardName"></div>
           <div class="card-trans" id="cardTrans"></div>
         </div>
-        <div class="card-hint" id="cardHint">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-          tap to hear
-        </div>
+
       </div>
 
       <!-- video mode — replaces card content -->
@@ -220,7 +217,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 
     <div class="controls">
       <button class="btn" id="prevBtn" onclick="prev()">&#8592; Prev</button>
-      <button class="btn btn-play" onclick="playAudio()" aria-label="Play">&#9654;</button>
+      <button class="btn btn-play" id="playBtn" onclick="handlePlayBtn()" aria-label="Play">&#9654;</button>
       <button class="btn" id="nextBtn" onclick="next()">Next &#8594;</button>
     </div>
 
@@ -545,6 +542,7 @@ function loadLevel(li,si){
   resetOrder();
   render();
   if(mode==='auto'){playAudio();startAuto();}
+  updatePlayBtn();
 }
 
 function getSL(){return LEVELS[curLvl].subs[curSub];}
@@ -699,13 +697,46 @@ function toggleVideo(e){
   }
 }
 
+function updatePlayBtn(){
+  const btn=document.getElementById('playBtn');
+  if(!btn) return;
+  // pause icon = two vertical bars, play = triangle
+  if(mode==='auto'&&autoTimer){
+    btn.innerHTML='&#9646;&#9646;';
+    btn.title='Pause';
+  } else {
+    btn.innerHTML='&#9654;';
+    btn.title='Play';
+  }
+}
+
+function handlePlayBtn(){
+  if(mode==='auto'){
+    if(autoTimer){
+      // pause
+      stopAuto();
+      updatePlayBtn();
+    } else {
+      // resume from current card
+      playAudio();
+      startAuto();
+      updatePlayBtn();
+    }
+  } else {
+    // non-auto: play audio and reveal pronunciation
+    playAudio();
+    const rev=document.getElementById('cardReveal');
+    if(rev&&rev.classList.contains('hidden')){
+      rev.classList.remove('hidden');
+    }
+  }
+}
+
 function handleClick(){
   playAudio();
   const rev=document.getElementById('cardReveal');
-  const hint=document.getElementById('cardHint');
   if(rev.classList.contains('hidden')){
     rev.classList.remove('hidden');
-    hint.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> tap to hear';
   }
 }
 
@@ -714,7 +745,7 @@ function next(){
   stopAudio();
   const cards=getCards();
   if(curIdx<cards.length-1){curIdx++;render();if(mode==='auto')playAudio();}
-  else{stopAuto();document.getElementById('doneBanner').classList.add('vis');}
+  else{stopAuto();updatePlayBtn();document.getElementById('doneBanner').classList.add('vis');}
 }
 function prev(){
   stopAudio();
@@ -729,7 +760,7 @@ function setMode(m,btn){
   document.getElementById('autoBox').classList.toggle('vis',m==='auto');
   document.getElementById('doneBanner').classList.remove('vis');
   curIdx=0;resetOrder();render();
-  if(m==='auto'){playAudio();startAuto();}
+  if(m==='auto'){playAudio();startAuto();updatePlayBtn();}
 }
 
 function startAuto(){
