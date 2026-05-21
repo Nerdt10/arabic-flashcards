@@ -14,7 +14,7 @@
   --orange:#e67e22;
   --orange-dark:#ca6d12;
   --orange-light:#fef3e2;
-  --white:#ffffff  
+  --white:#ffffff;
   --offwhite:#f2f2f2;
   --text:#1a1a2e;
   --text2:#666;
@@ -156,6 +156,30 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 /* DONE */
 .done-banner{background:#eafaf1;border:1.5px solid #27ae60;border-radius:8px;padding:12px 16px;text-align:center;font-size:0.88rem;color:#1e8449;font-weight:700;display:none;width:100%;}
 .done-banner.vis{display:block;}
+
+/* QUIZ */
+.quiz-wrap{width:100%;display:none;flex-direction:column;gap:16px;align-items:center;}
+.quiz-wrap.vis{display:flex;}
+.quiz-listen{width:72px;height:72px;border-radius:50%;background:var(--blue);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 12px rgba(41,128,185,0.25);}
+.quiz-listen:hover{background:var(--blue-dark);transform:scale(1.05);}
+.quiz-listen.playing{background:var(--orange);box-shadow:0 2px 16px rgba(230,126,34,0.35);}
+.quiz-prompt{font-size:0.85rem;color:var(--text2);text-align:center;}
+.quiz-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;}
+.quiz-opt{padding:20px 12px;border:2px solid var(--border);border-radius:10px;background:var(--white);font-family:'Scheherazade New',serif;font-size:52px;text-align:center;cursor:pointer;transition:all 0.15s;direction:rtl;line-height:1;}
+.quiz-opt:hover{border-color:var(--blue);background:var(--blue-light);}
+.quiz-opt.correct{border-color:#27ae60;background:#eafaf1;animation:pop 0.3s ease;}
+.quiz-opt.wrong{border-color:#e74c3c;background:#fdf0ef;}
+.quiz-opt.reveal{border-color:#27ae60;background:#eafaf1;}
+.quiz-opt:disabled{cursor:default;}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+.quiz-score{font-size:0.8rem;color:var(--text2);font-weight:600;}
+.quiz-result{background:var(--white);border:2px solid var(--border);border-radius:10px;padding:24px;text-align:center;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.quiz-result h3{font-size:1.2rem;font-weight:700;}
+.quiz-result.pass h3{color:#27ae60;}
+.quiz-result.fail h3{color:#e74c3c;}
+.quiz-result p{font-size:0.85rem;color:var(--text2);}
+.sidebar-check{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#27ae60;margin-left:6px;flex-shrink:0;}
+.sidebar-check svg{display:block;}
 </style>
 </head>
 <body>
@@ -177,7 +201,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
   </div>
 
   <div class="content-area">
-    <div class="mode-bar">
+    <div class="mode-bar" id="modeBar">
       <button class="mode-btn active" onclick="setMode('seq',this)">In order</button>
       <button class="mode-btn" onclick="setMode('rand',this)">Random</button>
       <button class="mode-btn" onclick="setMode('auto',this)">Auto-play</button>
@@ -220,7 +244,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 
     <div class="forms-grid" id="formsGrid"></div>
 
-    <div class="controls">
+    <div class="controls" id="controls">
       <button class="btn" id="prevBtn" onclick="prev()">&#8592; Prev</button>
       <button class="btn btn-play" id="playBtn" onclick="handlePlayBtn()" aria-label="Play"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
       <button class="btn" id="nextBtn" onclick="next()">Next &#8594;</button>
@@ -244,6 +268,21 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
     </div>
 
     <div class="done-banner" id="doneBanner">✓ Section complete! Choose next sublevel from the sidebar.</div>
+
+    <!-- QUIZ PANEL -->
+    <div class="quiz-wrap" id="quizWrap">
+      <div class="quiz-score" id="quizScore">Question 1 of 10</div>
+      <button class="quiz-listen" id="quizListenBtn" onclick="quizPlay()" aria-label="Play letter sound">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      </button>
+      <p class="quiz-prompt">Listen and choose the correct letter</p>
+      <div class="quiz-grid" id="quizGrid"></div>
+      <div class="quiz-result" id="quizResult" style="display:none;">
+        <h3 id="quizResultTitle"></h3>
+        <p id="quizResultMsg"></p>
+        <button class="btn" onclick="startQuiz()" style="margin-top:4px;">Try Again</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -415,6 +454,7 @@ const LEVELS = [
         .concat(L.map(l=>({ar:l.forms[3],nm:l.nm+' — final',tr:'end of a word',forms:l.forms,num:l.n})))},
     {id:'s13',label:'Reading Practice',desc:'Letter combinations from the textbook (section 1.3)',badge:'1.3',showForms:false,reading:true,
       cards:sect13.map(w=>({ar:w,nm:w,tr:'read aloud',tts:w,sz:w.length>3?'sm':''}))},
+    {id:'s14',label:'Quiz',desc:'Listen and identify — 10 questions, 80% to pass',badge:'1.4',showForms:false,quiz:true,cards:[]},
   ]},
   {label:'2. Short Vowels',desc:'Fathah, Kasrah, Dhammah',color:'#2980b9',subs:[
     {id:'s21',label:'Fathah (a)',desc:'All letters with fathah ◌َ — short "a"',badge:'2.1',showForms:false,
@@ -557,6 +597,10 @@ function loadLevel(li,si){
   document.getElementById('topDesc').textContent=sl.label+' — '+sl.desc;
   
   updateSidebar();
+  const isQuiz=getSL().quiz===true;
+  document.getElementById('modeBar').style.display=isQuiz?'none':'flex';
+  showQuizPanel(isQuiz);
+  if(isQuiz){ startQuiz(); return; }
   resetOrder();
   render();
   updatePlayBtn();
@@ -792,6 +836,119 @@ function setRep(v){rep=parseInt(v);autoReps=0;}
 function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+// ── QUIZ ─────────────────────────────────────────────────────────────────────
+const QUIZ_TOTAL = 10;
+const QUIZ_PASS = 0.8;
+let quizQuestions=[], quizCurQ=0, quizCorrect=0, quizAnswered=false, quizLetter=null;
+
+function loadQuizProgress(){
+  try{ return JSON.parse(localStorage.getItem('quizProgress')||'{}'); } catch(e){ return {}; }
+}
+function saveQuizPass(sectionId){
+  const p=loadQuizProgress();
+  p[sectionId]=true;
+  localStorage.setItem('quizProgress',JSON.stringify(p));
+}
+
+function startQuiz(){
+  // Pick 10 random letters that have audio
+  const pool=L.filter(l=>AUDIO_MAP[l.n]);
+  const shuffled=[...pool].sort(()=>Math.random()-0.5);
+  quizQuestions=shuffled.slice(0,QUIZ_TOTAL);
+  quizCurQ=0; quizCorrect=0; quizAnswered=false;
+  document.getElementById('quizResult').style.display='none';
+  renderQuizQ();
+}
+
+function renderQuizQ(){
+  const q=quizQuestions[quizCurQ];
+  quizLetter=q;
+  quizAnswered=false;
+  document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
+  document.getElementById('quizListenBtn').classList.remove('playing');
+
+  // Build 4 options: correct + 3 random wrong
+  const pool=L.filter(l=>l.n!==q.n);
+  const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
+  const opts=[q,...wrong].sort(()=>Math.random()-0.5);
+
+  const grid=document.getElementById('quizGrid');
+  grid.innerHTML='';
+  opts.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';
+    btn.textContent=opt.ar;
+    btn.onclick=()=>quizAnswer(btn,opt,q,opts);
+    grid.appendChild(btn);
+  });
+
+  // Auto-play the letter sound
+  setTimeout(()=>quizPlay(),300);
+}
+
+function quizPlay(){
+  const btn=document.getElementById('quizListenBtn');
+  if(!quizLetter) return;
+  if(AUDIO_MAP[quizLetter.n]){
+    btn.classList.add('playing');
+    const a=new Audio('audio/'+AUDIO_MAP[quizLetter.n]);
+    a.play().catch(()=>tts(quizLetter));
+    a.onended=()=>btn.classList.remove('playing');
+    a.onerror=()=>{btn.classList.remove('playing');tts(quizLetter);};
+  } else {
+    tts(quizLetter);
+  }
+}
+
+function quizAnswer(btnEl, chosen, correct, allOpts){
+  if(quizAnswered) return;
+  quizAnswered=true;
+  const isCorrect=chosen.n===correct.n;
+  if(isCorrect) quizCorrect++;
+
+  // Mark all buttons
+  const grid=document.getElementById('quizGrid');
+  grid.querySelectorAll('.quiz-opt').forEach((b,i)=>{
+    b.disabled=true;
+    if(b===btnEl) b.classList.add(isCorrect?'correct':'wrong');
+    if(allOpts[i].n===correct.n) b.classList.add('reveal');
+  });
+
+  setTimeout(()=>{
+    quizCurQ++;
+    if(quizCurQ<QUIZ_TOTAL){
+      renderQuizQ();
+    } else {
+      showQuizResult();
+    }
+  },900);
+}
+
+function showQuizResult(){
+  const pct=quizCorrect/QUIZ_TOTAL;
+  const passed=pct>=QUIZ_PASS;
+  const res=document.getElementById('quizResult');
+  res.className='quiz-result'+(passed?' pass':' fail');
+  document.getElementById('quizResultTitle').textContent=passed?'🎉 Passed!':'Not quite — try again';
+  document.getElementById('quizResultMsg').textContent=`You got ${quizCorrect} out of ${QUIZ_TOTAL} correct (${Math.round(pct*100)}%). ${passed?'Section 1 is complete!':'You need 80% to pass.'}`;
+  res.style.display='flex';
+  if(passed){
+    saveQuizPass('s14');
+    buildSidebar();   // rebuild so checkmark appears immediately
+    updateSidebar();  // re-apply active/open states
+    launchConfetti();
+  }
+}
+
+function showQuizPanel(show){
+  document.getElementById('quizWrap').classList.toggle('vis',show);
+  document.getElementById('card').style.display=show?'none':'flex';
+  document.getElementById('formsGrid').style.display=show?'none':'grid';
+  document.getElementById('controls').style.display=show?'none':'flex';
+  document.getElementById('pFill').parentElement.parentElement.style.display=show?'none':'flex';
+  document.getElementById('doneBanner').style.display=show?'none':'';
+}
+
 window.speechSynthesis&&window.speechSynthesis.getVoices();
 buildSidebar();
 loadLevel(0,0);
