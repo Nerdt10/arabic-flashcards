@@ -851,10 +851,16 @@ function saveQuizPass(sectionId){
 }
 
 function startQuiz(){
-  // Pick 10 random letters that have audio
-  const pool=L.filter(l=>AUDIO_MAP[l.n]);
-  const shuffled=[...pool].sort(()=>Math.random()-0.5);
-  quizQuestions=shuffled.slice(0,QUIZ_TOTAL);
+  // 5 isolated letter questions + 5 reading practice questions, shuffled together
+  const letterPool=L.filter(l=>AUDIO_MAP[l.n]).sort(()=>Math.random()-0.5).slice(0,5);
+  const letterQs=letterPool.map(l=>({type:'letter',answer:l,tts:l.ar,label:l.nm}));
+
+  // Reading practice combos — use sect13 words (connected letters)
+  const readPool=[...sect13].sort(()=>Math.random()-0.5).slice(0,5);
+  const readQs=readPool.map(w=>({type:'reading',answer:w,tts:w,label:w}));
+
+  // Shuffle all 10 together
+  quizQuestions=[...letterQs,...readQs].sort(()=>Math.random()-0.5);
   quizCurQ=0; quizCorrect=0; quizAnswered=false;
   document.getElementById('quizResult').style.display='none';
   renderQuizQ();
@@ -867,60 +873,84 @@ function renderQuizQ(){
   document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
   document.getElementById('quizListenBtn').classList.remove('playing');
 
-  // Build 4 options: correct + 3 random wrong
-  const pool=L.filter(l=>l.n!==q.n);
-  const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
-  const opts=[q,...wrong].sort(()=>Math.random()-0.5);
-
   const grid=document.getElementById('quizGrid');
   grid.innerHTML='';
-  opts.forEach(opt=>{
-    const btn=document.createElement('button');
-    btn.className='quiz-opt';
-    btn.textContent=opt.ar;
-    btn.onclick=()=>quizAnswer(btn,opt,q,opts);
-    grid.appendChild(btn);
-  });
 
-  // Auto-play the letter sound
+  let opts;
+  if(q.type==='letter'){
+    // 4 Arabic letter options
+    const pool=L.filter(l=>l.n!==q.answer.n);
+    const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
+    opts=[{ar:q.answer.ar,id:q.answer.n},...wrong.map(l=>({ar:l.ar,id:l.n}))].sort(()=>Math.random()-0.5);
+    opts.forEach(opt=>{
+      const btn=document.createElement('button');
+      btn.className='quiz-opt';
+      btn.textContent=opt.ar;
+      btn.onclick=()=>quizAnswer(btn,opt.id===q.answer.n,opts.map(o=>o.id===q.answer.n),btn);
+      grid.appendChild(btn);
+    });
+  } else {
+    // 4 reading practice word options
+    const pool=[...sect13].filter(w=>w!==q.answer).sort(()=>Math.random()-0.5).slice(0,3);
+    const readOpts=[q.answer,...pool].sort(()=>Math.random()-0.5);
+    readOpts.forEach(opt=>{
+      const btn=document.createElement('button');
+      btn.className='quiz-opt';
+      btn.style.fontSize='32px';
+      btn.textContent=opt;
+      btn.onclick=()=>quizAnswer(btn,opt===q.answer,readOpts.map(o=>o===q.answer),btn);
+      grid.appendChild(btn);
+    });
+  }
+
+  // Auto-play the sound
   setTimeout(()=>quizPlay(),300);
 }
 
 function quizPlay(){
   const btn=document.getElementById('quizListenBtn');
   if(!quizLetter) return;
-  if(AUDIO_MAP[quizLetter.n]){
-    btn.classList.add('playing');
-    const a=new Audio('audio/'+AUDIO_MAP[quizLetter.n]);
-    a.play().catch(()=>tts(quizLetter));
+  btn.classList.add('playing');
+  const q=quizLetter;
+  if(q.type==='letter'&&AUDIO_MAP[q.answer.n]){
+    const a=new Audio('audio/'+AUDIO_MAP[q.answer.n]);
+    a.play().catch(()=>{btn.classList.remove('playing');ttsTxt(q.answer.ar);});
     a.onended=()=>btn.classList.remove('playing');
-    a.onerror=()=>{btn.classList.remove('playing');tts(quizLetter);};
+    a.onerror=()=>{btn.classList.remove('playing');ttsTxt(q.answer.ar);};
   } else {
-    tts(quizLetter);
+    ttsTxt(q.tts);
+    btn.classList.remove('playing');
   }
 }
 
-function quizAnswer(btnEl, chosen, correct, allOpts){
+function ttsTxt(txt){
+  if(!('speechSynthesis'in window))return;
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(txt);
+  utt.lang='ar-SA';utt.rate=0.75;
+  const voices=window.speechSynthesis.getVoices();
+  const arV=voices.find(v=>v.lang.startsWith('ar'));
+  if(arV)utt.voice=arV;
+  window.speechSynthesis.speak(utt);
+}
+
+function quizAnswer(btnEl, isCorrect, correctMask, _unused){
   if(quizAnswered) return;
   quizAnswered=true;
-  const isCorrect=chosen.n===correct.n;
   if(isCorrect) quizCorrect++;
 
-  // Mark all buttons
   const grid=document.getElementById('quizGrid');
-  grid.querySelectorAll('.quiz-opt').forEach((b,i)=>{
+  const btns=grid.querySelectorAll('.quiz-opt');
+  btns.forEach((b,i)=>{
     b.disabled=true;
     if(b===btnEl) b.classList.add(isCorrect?'correct':'wrong');
-    if(allOpts[i].n===correct.n) b.classList.add('reveal');
+    if(correctMask[i]) b.classList.add('reveal');
   });
 
   setTimeout(()=>{
     quizCurQ++;
-    if(quizCurQ<QUIZ_TOTAL){
-      renderQuizQ();
-    } else {
-      showQuizResult();
-    }
+    if(quizCurQ<QUIZ_TOTAL){ renderQuizQ(); }
+    else{ showQuizResult(); }
   },900);
 }
 
