@@ -704,7 +704,7 @@ const AUDIO_MAP = {1: "01_alef.mp3", 2: "02_ba.mp3", 3: "03_ta.mp3", 4: "04_tha.
 
 // Reading practice audio — first 60 cards in order, files in reading/ folder
 const READING_MAP = {};
-for(let i=1;i<=60;i++) READING_MAP[i]=i+'.mp3';
+for(let i=1;i<=60;i++) READING_MAP[i]=(i<10?'0'+i:i)+'.mp3';
 
 // Video files confirmed present — add more numbers as you upload them
 const VIDEO_MAP = {1:"01_alef.mp4", 2:"02_ba.mp4", 3:"03_ta.mp4", 4:"04_tha.mp4", 5:"05_jeem.mp4", 6:"06_ha.mp4", 7:"07_kha.mp4", 8:"08_dal.mp4", 9:"09_thal.mp4", 10:"10_ra.mp4", 11:"11_zay.mp4", 12:"12_seen.mp4", 13:"13_sheen.mp4", 14:"14_sad.mp4", 15:"15_dad.mp4", 16:"16_ta2.mp4", 17:"17_dha.mp4", 18:"18_ain.mp4", 19:"19_ghain.mp4", 20:"20_fa.mp4", 21:"21_qaf.mp4", 22:"22_kaf.mp4", 23:"23_lam.mp4", 24:"24_meem.mp4", 25:"25_noon.mp4", 26:"26_ha2.mp4", 27:"27_waw.mp4", 28:"28_ya.mp4"};
@@ -878,7 +878,7 @@ function startQuiz(){
 
   // Reading practice combos — use sect13 words (connected letters)
   const readPool=[...sect13].sort(()=>Math.random()-0.5).slice(0,5);
-  const readQs=readPool.map(w=>({type:'reading',answer:w,tts:w,label:w}));
+  const readQs=readPool.map((w,i)=>({type:'reading',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
 
   // Shuffle all 10 together
   quizQuestions=[...letterQs,...readQs].sort(()=>Math.random()-0.5);
@@ -934,10 +934,17 @@ function quizPlay(){
   btn.classList.add('playing');
   const q=quizLetter;
   if(q.type==='letter'&&AUDIO_MAP[q.answer.n]){
+    // isolated letter — use MP3
     const a=new Audio('audio/'+AUDIO_MAP[q.answer.n]);
     a.play().catch(()=>{btn.classList.remove('playing');ttsTxt(q.answer.ar);});
     a.onended=()=>btn.classList.remove('playing');
     a.onerror=()=>{btn.classList.remove('playing');ttsTxt(q.answer.ar);};
+  } else if(q.type==='reading'&&q.readingIdx&&READING_MAP[q.readingIdx]){
+    // reading practice word — use reading MP3
+    const a=new Audio('reading/'+READING_MAP[q.readingIdx]);
+    a.play().catch(()=>{btn.classList.remove('playing');ttsTxt(q.tts);});
+    a.onended=()=>btn.classList.remove('playing');
+    a.onerror=()=>{btn.classList.remove('playing');ttsTxt(q.tts);};
   } else {
     ttsTxt(q.tts);
     btn.classList.remove('playing');
