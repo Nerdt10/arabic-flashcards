@@ -165,7 +165,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .quiz-listen.playing{background:var(--orange);box-shadow:0 2px 16px rgba(230,126,34,0.35);}
 .quiz-prompt{font-size:0.85rem;color:var(--text2);text-align:center;}
 .quiz-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;}
-.quiz-opt{padding:20px 12px;border:2px solid var(--border);border-radius:10px;background:var(--white);font-family:'Scheherazade New',serif;font-size:52px;text-align:center;cursor:pointer;transition:all 0.15s;direction:rtl;line-height:1;}
+.quiz-opt{padding:18px 12px 22px;border:2px solid var(--border);border-radius:10px;background:var(--white);font-family:'Scheherazade New',serif;font-size:52px;text-align:center;cursor:pointer;transition:all 0.15s;direction:rtl;line-height:1.2;display:flex;align-items:center;justify-content:center;min-height:90px;}
 .quiz-opt:hover{border-color:var(--blue);background:var(--blue-light);}
 .quiz-opt.correct{border-color:#27ae60;background:#eafaf1;animation:pop 0.3s ease;}
 .quiz-opt.wrong{border-color:#e74c3c;background:#fdf0ef;}
@@ -599,6 +599,14 @@ function loadLevel(li,si){
   updateSidebar();
   const isQuiz=getSL().quiz===true;
   document.getElementById('modeBar').style.display=isQuiz?'none':'flex';
+  // also stop auto mode when entering quiz
+  if(isQuiz){ 
+    stopAuto(); 
+    mode='seq'; 
+    document.querySelectorAll('.mode-btn').forEach((b,i)=>b.classList.toggle('active',i===0)); 
+    document.getElementById('autoBox').classList.remove('vis');
+    updatePlayBtn(); 
+  }
   showQuizPanel(isQuiz);
   if(isQuiz){ startQuiz(); return; }
   resetOrder();
@@ -668,7 +676,8 @@ function render(){
   if(sl.showForms&&card.forms){
     ['isolated','initial','medial','final'].forEach((lb,i)=>{
       const c=document.createElement('div');
-      const isActive=card.forms[i]===card.ar;
+      // on 1.1 (Alphabet) only highlight isolated; on 1.2 (Different Shapes) highlight matching form
+      const isActive = curSub===0 ? i===0 : card.forms[i]===card.ar;
       c.className='form-cell'+(isActive?' hl':'');
       c.innerHTML=`<span class="form-arabic">${card.forms[i]}</span><span class="form-label">${lb}</span>`;
       c.onclick=(e)=>{
