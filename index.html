@@ -550,7 +550,10 @@ function buildSidebar(){
     block.className='section-block'+(li===0?' open':'');
     const lDiv=document.createElement('div');
     lDiv.className='sidebar-level'+(li===0?' active':'');
-    const lvLabel=lv.label.replace(/^\d+\.\s*/,'');lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}</span><small>${lv.desc}</small></div>`;
+    const lvLabel=lv.label.replace(/^\d+\.\s*/,'');
+    const lvPassed=lv.subs.some(s=>s.quiz&&loadQuizProgress()[s.id]);
+    const checkBadge=lvPassed?`<span class="sidebar-check" style="margin-left:5px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>`:'';
+    lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}${checkBadge}</span><small>${lv.desc}</small></div>`;
     lDiv.onclick=()=>{loadLevel(li,0);};
     block.appendChild(lDiv);
     const slDiv=document.createElement('div');
@@ -704,7 +707,7 @@ const AUDIO_MAP = {1: "01_alef.mp3", 2: "02_ba.mp3", 3: "03_ta.mp3", 4: "04_tha.
 
 // Reading practice audio — first 60 cards in order, files in reading/ folder
 const READING_MAP = {};
-for(let i=1;i<=60;i++) READING_MAP[i]=(i<10?'0'+i:i)+'.mp3';
+for(let i=1;i<=120;i++) READING_MAP[i]=(i<10?'0'+i:i)+'.mp3';
 
 // Video files confirmed present — add more numbers as you upload them
 const VIDEO_MAP = {1:"01_alef.mp4", 2:"02_ba.mp4", 3:"03_ta.mp4", 4:"04_tha.mp4", 5:"05_jeem.mp4", 6:"06_ha.mp4", 7:"07_kha.mp4", 8:"08_dal.mp4", 9:"09_thal.mp4", 10:"10_ra.mp4", 11:"11_zay.mp4", 12:"12_seen.mp4", 13:"13_sheen.mp4", 14:"14_sad.mp4", 15:"15_dad.mp4", 16:"16_ta2.mp4", 17:"17_dha.mp4", 18:"18_ain.mp4", 19:"19_ghain.mp4", 20:"20_fa.mp4", 21:"21_qaf.mp4", 22:"22_kaf.mp4", 23:"23_lam.mp4", 24:"24_meem.mp4", 25:"25_noon.mp4", 26:"26_ha2.mp4", 27:"27_waw.mp4", 28:"28_ya.mp4"};
@@ -997,6 +1000,9 @@ function quizAnswer(btnEl, isCorrect, correctMask, _unused){
   quizAnswered=true;
   if(isCorrect){ quizCorrect++; playCorrectSound(); }
   else{ playWrongSound(); }
+
+  // update score immediately after answering
+  document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
 
   const grid=document.getElementById('quizGrid');
   const btns=grid.querySelectorAll('.quiz-opt');
