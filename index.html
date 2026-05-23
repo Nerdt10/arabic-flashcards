@@ -159,6 +159,19 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .done-banner.vis{display:block;}
 
 /* QUIZ */
+/* drag-drop question */
+.dd-wrap{width:100%;display:flex;flex-direction:column;gap:14px;align-items:center;}
+.dd-zones{display:flex;flex-direction:row-reverse;justify-content:center;gap:8px;width:100%;}
+.dd-zone{width:64px;height:72px;border:2px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Scheherazade New',serif;font-size:36px;direction:rtl;transition:all 0.15s;background:var(--white);position:relative;}
+.dd-zone.over{border-color:var(--blue);background:var(--blue-light);}
+.dd-zone.correct{border-color:#27ae60;background:#eafaf1;border-style:solid;animation:pop 0.3s ease;}
+.dd-zone.wrong{border-color:#e74c3c;background:#fdf0ef;border-style:solid;}
+.dd-zone .zone-label{position:absolute;bottom:4px;font-size:9px;color:var(--text3);font-family:'Cairo',sans-serif;}
+.dd-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:100%;}
+.dd-tile{width:56px;height:64px;border:2px solid var(--border);border-radius:8px;background:var(--white);display:flex;align-items:center;justify-content:center;font-family:'Scheherazade New',serif;font-size:36px;direction:rtl;cursor:grab;transition:all 0.15s;user-select:none;}
+.dd-tile:hover{border-color:var(--blue);background:var(--blue-light);}
+.dd-tile.dragging{opacity:0.4;cursor:grabbing;}
+.dd-tile.used{opacity:0.25;pointer-events:none;}
 .quiz-wrap{width:100%;display:none;flex-direction:column;gap:16px;align-items:center;}
 .quiz-wrap.vis{display:flex;}
 .quiz-listen{width:72px;height:72px;border-radius:50%;background:var(--blue);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;box-shadow:0 2px 12px rgba(41,128,185,0.25);}
@@ -278,6 +291,10 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
       </button>
       <p class="quiz-prompt">Listen and choose the correct letter</p>
       <div class="quiz-grid" id="quizGrid"></div>
+      <div class="dd-wrap" id="ddWrap" style="display:none;">
+        <div class="dd-zones" id="ddZones"></div>
+        <div class="dd-tiles" id="ddTiles"></div>
+      </div>
       <div class="quiz-result" id="quizResult" style="display:none;">
         <h3 id="quizResultTitle"></h3>
         <p id="quizResultMsg"></p>
@@ -590,7 +607,9 @@ function buildSidebar(){
     const lDiv=document.createElement('div');
     lDiv.className='sidebar-level'+(li===0?' active':'');
     const lvLabel=lv.label.replace(/^\d+\.\s*/,'');
-    lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}</span><small>${lv.desc}</small></div>`;
+    const lvPassed=lv.subs.some(s=>s.quiz&&loadQuizProgress()[s.id]);
+    const greyStarHtml=lvPassed?`<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;vertical-align:middle;margin-left:5px;opacity:0.45;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#888" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>`:'';
+    lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}${greyStarHtml}</span><small>${lv.desc}</small></div>`;
     lDiv.onclick=()=>{loadLevel(li,0);};
     block.appendChild(lDiv);
     const slDiv=document.createElement('div');
@@ -914,17 +933,45 @@ function saveQuizPass(sectionId){
   localStorage.setItem('quizProgress',JSON.stringify(p));
 }
 
+// Letter positional forms lookup
+function getLetterForms(letterAr){
+  const l=L.find(x=>x.ar===letterAr);
+  return l?l.forms:[letterAr,letterAr,letterAr,letterAr];
+}
+function getPosForm(letterAr,pos,wordLen){
+  const forms=getLetterForms(letterAr);
+  // non-connecting letters (alif,dal,dhal,ra,zay,waw) only have isolated/final
+  const nonConn=['ا','د','ذ','ر','ز','و'];
+  if(nonConn.includes(letterAr)) return pos===wordLen-1?forms[0]:forms[3];
+  if(pos===0) return forms[1]; // initial
+  if(pos===wordLen-1) return forms[3]; // final
+  return forms[2]; // medial
+}
+function buildDDWord(word){
+  // split word into individual letters (skip diacritics/harakat)
+  const diacritics=/[ً-ٰٟٱ‌‍]/g;
+  const clean=word.replace(diacritics,'');
+  const letters=[...clean]; // spread handles multi-codepoint chars
+  return letters;
+}
+
 function startQuiz(){
-  // 5 isolated letter questions + 5 reading practice questions, shuffled together
   const letterPool=L.filter(l=>AUDIO_MAP[l.n]).sort(()=>Math.random()-0.5).slice(0,5);
   const letterQs=letterPool.map(l=>({type:'letter',answer:l,tts:l.ar,label:l.nm}));
 
-  // Reading practice combos — use sect13 words (connected letters)
-  const readPool=[...sect13].sort(()=>Math.random()-0.5).slice(0,5);
-  const readQs=readPool.map((w,i)=>({type:'reading',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
+  // 3 reading MCQ
+  const readPool=[...sect13].filter((_,i)=>i<120).sort(()=>Math.random()-0.5).slice(0,3);
+  const readQs=readPool.map(w=>({type:'reading',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
 
-  // Shuffle all 10 together
-  quizQuestions=[...letterQs,...readQs].sort(()=>Math.random()-0.5);
+  // 2 drag-drop spelling from reading practice (prefer shorter words 2-4 letters)
+  const ddPool=[...sect13].filter((_,i)=>i<120).filter(w=>{
+    const clean=w.replace(/[ً-ٰٟٱ‌‍]/g,'');
+    const l=[...clean].length;
+    return l>=2&&l<=5;
+  }).sort(()=>Math.random()-0.5).slice(0,2);
+  const ddQs=ddPool.map(w=>({type:'dragdrop',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
+
+  quizQuestions=[...letterQs,...readQs,...ddQs].sort(()=>Math.random()-0.5);
   quizCurQ=0; quizCorrect=0; quizAnswered=false;
   document.getElementById('quizResult').style.display='none';
   renderQuizQ();
@@ -937,7 +984,18 @@ function renderQuizQ(){
   document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
   document.getElementById('quizListenBtn').classList.remove('playing');
 
+  // show/hide panels
   const grid=document.getElementById('quizGrid');
+  const ddWrap=document.getElementById('ddWrap');
+  grid.style.display=q.type==='dragdrop'?'none':'grid';
+  ddWrap.style.display=q.type==='dragdrop'?'flex':'none';
+
+  if(q.type==='dragdrop'){
+    renderDragDrop(q);
+    setTimeout(()=>quizPlay(),300);
+    return;
+  }
+
   grid.innerHTML='';
 
   let opts;
@@ -1057,6 +1115,86 @@ function quizAnswer(btnEl, isCorrect, correctMask, _unused){
     if(quizCurQ<QUIZ_TOTAL){ renderQuizQ(); }
     else{ showQuizResult(); }
   },900);
+}
+
+function renderDragDrop(q){
+  const letters=buildDDWord(q.answer);
+  const zones=document.getElementById('ddZones');
+  const tiles=document.getElementById('ddTiles');
+  zones.innerHTML=''; tiles.innerHTML='';
+
+  // Create drop zones (RTL order, one per letter)
+  const posLabels=['1st','2nd','3rd','4th','5th'];
+  letters.forEach((l,i)=>{
+    const zone=document.createElement('div');
+    zone.className='dd-zone';
+    zone.dataset.idx=i;
+    zone.dataset.correct=l;
+    zone.dataset.posForm=getPosForm(l,i,letters.length);
+    const lbl=document.createElement('span');
+    lbl.className='zone-label';
+    lbl.textContent=posLabels[i]||'';
+    zone.appendChild(lbl);
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('over');});
+    zone.addEventListener('dragleave',()=>zone.classList.remove('over'));
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();
+      zone.classList.remove('over');
+      const tileId=e.dataTransfer.getData('tileId');
+      const tile=document.getElementById(tileId);
+      if(!tile||zone.dataset.filled) return;
+      const dropped=tile.dataset.letter;
+      const correct=zone.dataset.correct;
+      if(dropped===correct){
+        zone.textContent=zone.dataset.posForm;
+        zone.classList.add('correct');
+        zone.dataset.filled='1';
+        tile.classList.add('used');
+        playCorrectSound();
+        checkDDComplete(q,letters);
+      } else {
+        zone.classList.add('wrong');
+        playWrongSound();
+        setTimeout(()=>zone.classList.remove('wrong'),600);
+      }
+    });
+    zones.appendChild(zone);
+  });
+
+  // Create tiles — correct letters + 2 decoy letters, shuffled
+  const allLetters=L.map(l=>l.ar);
+  const decoys=allLetters.filter(l=>!letters.includes(l)).sort(()=>Math.random()-0.5).slice(0,2);
+  const tileLetters=[...letters,...decoys].sort(()=>Math.random()-0.5);
+
+  tileLetters.forEach((l,i)=>{
+    const tile=document.createElement('div');
+    const id='tile-'+i;
+    tile.id=id; tile.className='dd-tile';
+    tile.textContent=l;
+    tile.draggable=true;
+    tile.dataset.letter=l;
+    tile.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('tileId',id);
+      tile.classList.add('dragging');
+    });
+    tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
+    tiles.appendChild(tile);
+  });
+}
+
+function checkDDComplete(q,letters){
+  const zones=document.getElementById('ddZones').querySelectorAll('.dd-zone');
+  const filled=[...zones].filter(z=>z.dataset.filled).length;
+  if(filled===letters.length){
+    // all correct
+    quizCorrect++;
+    document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
+    setTimeout(()=>{
+      quizCurQ++;
+      if(quizCurQ<QUIZ_TOTAL){ renderQuizQ(); }
+      else{ showQuizResult(); }
+    },900);
+  }
 }
 
 function showQuizResult(){
