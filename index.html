@@ -94,7 +94,8 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 
 /* PROGRESS */
 .progress-row{display:flex;align-items:center;gap:10px;width:100%;}
-.progress-track{flex:1;height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.progress-track{flex:1;height:8px;background:var(--border);border-radius:99px;overflow:hidden;cursor:pointer;transition:height 0.15s;}
+.progress-track:hover{height:10px;}
 .progress-fill{height:100%;background:var(--orange);border-radius:99px;transition:width 0.35s ease;}
 .progress-label{font-size:0.75rem;color:var(--text2);min-width:46px;text-align:right;font-weight:600;}
 
@@ -208,7 +209,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
     </div>
 
     <div class="progress-row">
-      <div class="progress-track"><div class="progress-fill" id="pFill" style="width:0%"></div></div>
+      <div class="progress-track" id="progressTrack" style="cursor:pointer;" onclick="scrubProgress(event)" onmousedown="startScrub(event)" ontouchstart="startScrub(event)"><div class="progress-fill" id="pFill" style="width:0%"></div></div>
       <span class="progress-label" id="pLabel">1 / 1</span>
     </div>
 
@@ -329,7 +330,7 @@ const sect13 = [
   'شم','صم','يم','لج','عج','حج','بع','يغ','بص','نص','قض','بس',
   'يس','قق','شق','لك','فك','كف','قك','كق','كو','وك','ول','لو',
   'بة','نة','تة','بلب','بعد','عبد','لهب','يهب','ثمن','فيه','خلق','فلق',
-  'رغد','وعد','وجد','بلغ','سمع','غري','غرب','عرش','حرش','مطر','شكر','ظلل',
+  'رغد','وعد','وجد','بلغ','سمع','غري','غبر','عرش','حرش','مطر','شكر','ظلل',
   'بسم','اهلل','اللهم','هلل','هل','لهم','فتح','نعبد','مكر','نستعين',
   'لفلك','هى','عبس','نبى','فمكث','نصر','الهدهد','يعلمون',
   'حمن','حمد','حما','حمو','بحمد','محمد'
@@ -537,6 +538,43 @@ let curLvl=0,curSub=0,curIdx=0,mode='seq',order=[],autoTimer=null,autoDelay=3000
 function hideReveal(){
   const rev=document.getElementById('cardReveal');
   if(rev) rev.classList.add('hidden');
+}
+
+function scrubToIdx(idx){
+  const cards=getCards();
+  const newIdx=Math.max(0,Math.min(cards.length-1,idx));
+  if(newIdx===curIdx) return;
+  stopAudio();
+  hideReveal();
+  curIdx=newIdx;
+  render();
+}
+
+function scrubProgress(e){
+  const track=document.getElementById('progressTrack');
+  const rect=track.getBoundingClientRect();
+  const pct=(e.clientX-rect.left)/rect.width;
+  const cards=getCards();
+  scrubToIdx(Math.round(pct*(cards.length-1)));
+}
+
+let scrubbing=false;
+function startScrub(e){
+  scrubbing=true;
+  const move=(ev)=>{
+    if(!scrubbing) return;
+    const clientX=ev.touches?ev.touches[0].clientX:ev.clientX;
+    const track=document.getElementById('progressTrack');
+    const rect=track.getBoundingClientRect();
+    const pct=Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));
+    const cards=getCards();
+    scrubToIdx(Math.round(pct*(cards.length-1)));
+  };
+  const up=()=>{ scrubbing=false; document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up); };
+  document.addEventListener('mousemove',move);
+  document.addEventListener('mouseup',up);
+  document.addEventListener('touchmove',move);
+  document.addEventListener('touchend',up);
 }
 
 function toggleSidebar(){
