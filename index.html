@@ -590,9 +590,7 @@ function buildSidebar(){
     const lDiv=document.createElement('div');
     lDiv.className='sidebar-level'+(li===0?' active':'');
     const lvLabel=lv.label.replace(/^\d+\.\s*/,'');
-    const lvPassed=lv.subs.some(s=>s.quiz&&loadQuizProgress()[s.id]);
-    const checkBadge=lvPassed?`<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:5px;flex-shrink:0;vertical-align:middle;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#f1c40f" stroke="#d4a017" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>`:'';
-    lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}${checkBadge}</span><small>${lv.desc}</small></div>`;
+    lDiv.innerHTML=`<div class="level-num"><div class="level-num-inner"><span>${li+1}</span></div></div><div class="level-text"><span>${lvLabel}</span><small>${lv.desc}</small></div>`;
     lDiv.onclick=()=>{loadLevel(li,0);};
     block.appendChild(lDiv);
     const slDiv=document.createElement('div');
