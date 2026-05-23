@@ -260,9 +260,9 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
       <div class="set-row">
         <label>Repeat each</label>
         <select onchange="setRep(this.value)">
-          <option value="1">1×</option>
+          <option value="1" selected>1×</option>
           <option value="2">2×</option>
-          <option value="3" selected>3×</option>
+          <option value="3">3×</option>
           <option value="5">5×</option>
         </select>
       </div>
@@ -532,7 +532,7 @@ const LEVELS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let curLvl=0,curSub=0,curIdx=0,mode='seq',order=[],autoTimer=null,autoDelay=3000,rep=3,autoReps=0,curAudio=null;
+let curLvl=0,curSub=0,curIdx=0,mode='seq',order=[],autoTimer=null,autoDelay=3000,rep=1,autoReps=0,curAudio=null;
 
 // ── SIDEBAR BUILD ─────────────────────────────────────────────────────────────
 function hideReveal(){
