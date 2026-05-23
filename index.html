@@ -718,7 +718,7 @@ function playAudio(){
   const sl=getSL();
   const cardEl=document.getElementById('card');
   // Level 1 sublevel 0 = use MP3 files
-  const readingIdx = getSL().reading ? (order[curIdx]+1) : null;
+  const readingIdx = getSL().reading ? (curIdx+1) : null;
   if(curLvl===0&&card.num&&AUDIO_MAP[card.num]){
     const a=new Audio('audio/'+AUDIO_MAP[card.num]);
     curAudio=a;
