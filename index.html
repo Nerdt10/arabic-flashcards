@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Arabic Reading Proficiency</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -159,6 +160,23 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .done-banner.vis{display:block;}
 
 /* QUIZ */
+.quiz-count-bar{display:none;align-items:center;gap:8px;margin-left:auto;}
+.quiz-count-bar.vis{display:flex;}
+.qc-label{font-size:12px;color:var(--text3);}
+/* quiz timeline tracker */
+.quiz-layout{display:flex;flex-direction:column;gap:12px;width:100%;}
+.quiz-main{flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.quiz-tracker{width:100%;padding:0 4px;}
+.qt-timeline{position:relative;height:20px;display:flex;align-items:center;}
+.qt-line{position:absolute;left:0;right:0;height:1.5px;background:var(--border);}
+.qt-dots{display:flex;justify-content:space-between;width:100%;position:relative;z-index:1;}
+.qt-dot{width:10px;height:10px;border-radius:50%;background:var(--white);border:1.5px solid var(--border);cursor:pointer;transition:all 0.2s;flex-shrink:0;}
+.qt-dot.correct{background:var(--text);border-color:var(--text);}
+.qt-dot.wrong{background:transparent;border-color:var(--text);}
+.qt-dot.current{width:14px;height:14px;background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 3px rgba(41,128,185,0.18);margin-top:-2px;}
+.qt-dot:hover:not(.current){transform:scale(1.3);}
+.qt-ends{display:flex;justify-content:space-between;margin-top:4px;}
+.qt-ends span{font-size:10px;color:var(--text3);}
 .section-block.open .grey-star{display:none;}
 
 /* drag-drop question */
@@ -216,7 +234,14 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
       <h2 id="topTitle">1. Alphabet</h2>
       <p id="topDesc">The Alphabet — All 28 letters — isolated form</p>
     </div>
-    <div style="width:36px;flex-shrink:0;"></div>
+    <div class="quiz-count-bar" id="quizCountBar">
+      <select id="qcSelect" style="font-size:13px;padding:5px 10px;border:0.5px solid var(--border2);border-radius:6px;background:var(--white);color:var(--text2);cursor:pointer;font-family:inherit;" onchange="setQuizTotal(parseInt(this.value))">
+        <option value="10">10 questions</option>
+        <option value="15">15 questions</option>
+        <option value="20">20 questions</option>
+        <option value="25">25 questions</option>
+      </select>
+    </div>
   </div>
 
   <div class="content-area">
@@ -290,17 +315,27 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 
     <!-- QUIZ PANEL -->
     <div class="quiz-wrap" id="quizWrap">
-      <div class="quiz-score" id="quizScore">Question 1 of 10</div>
-      <button class="quiz-listen" id="quizListenBtn" onclick="quizPlay()" aria-label="Play letter sound">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-      </button>
-      <p class="quiz-prompt">Listen and choose the correct letter</p>
-      <div class="quiz-grid" id="quizGrid"></div>
-      <div class="dd-wrap" id="ddWrap" style="display:none;">
-        <div class="dd-zones" id="ddZones"></div>
-        <div class="dd-tiles" id="ddTiles"></div>
+      <div class="quiz-layout">
+        <div class="quiz-tracker" id="quizTracker">
+          <div class="qt-timeline">
+            <div class="qt-line"></div>
+            <div class="qt-dots" id="qtDots"></div>
+          </div>
+          <div class="qt-ends"><span>Q1</span><span id="qtEnd">Q10</span></div>
+        </div>
+        <div class="quiz-main">
+          <div class="quiz-score" id="quizScore">Question 1 of 10</div>
+          <button class="quiz-listen" id="quizListenBtn" onclick="quizPlay()" aria-label="Play letter sound">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          </button>
+          <p class="quiz-prompt">Listen and choose the correct letter</p>
+          <div class="quiz-grid" id="quizGrid"></div>
+          <div class="dd-wrap" id="ddWrap" style="display:none;">
+            <div class="dd-zones" id="ddZones"></div>
+            <div class="dd-tiles" id="ddTiles"></div>
+          </div>
+        </div>
       </div>
-
     </div>
   </div>
 </div>
@@ -670,6 +705,8 @@ function loadLevel(li,si){
   updateSidebar();
   const isQuiz=getSL().quiz===true;
   document.getElementById('modeBar').style.display=isQuiz?'none':'flex';
+  document.getElementById('quizCountBar').classList.toggle('vis',isQuiz);
+  if(isQuiz){buildQuizCountBar();}
   // also stop auto mode when entering quiz
   if(isQuiz){ 
     stopAuto(); 
@@ -930,9 +967,10 @@ function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.ra
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 // ── QUIZ ─────────────────────────────────────────────────────────────────────
-const QUIZ_TOTAL = 10;
+const QUIZ_OPTIONS = [10,15,20,25];
+let QUIZ_TOTAL = 10;
 const QUIZ_PASS = 0.8;
-let quizQuestions=[], quizCurQ=0, quizCorrect=0, quizAnswered=false, quizLetter=null;
+let quizQuestions=[], quizCurQ=0, quizCorrect=0, quizAnswered=false, quizLetter=null, quizResults=[], quizChosen=[], quizOpts=[];
 
 function loadQuizProgress(){
   try{ return JSON.parse(localStorage.getItem('quizProgress')||'{}'); } catch(e){ return {}; }
@@ -966,35 +1004,110 @@ function buildDDWord(word){
 }
 
 function startQuiz(){
-  const letterPool=L.filter(l=>AUDIO_MAP[l.n]).sort(()=>Math.random()-0.5).slice(0,5);
+  const nLetter=Math.round(QUIZ_TOTAL*0.5);
+  const nDD=Math.max(2,Math.round(QUIZ_TOTAL*0.2));
+  const nRead=QUIZ_TOTAL-nLetter-nDD;
+
+  const letterPool=L.filter(l=>AUDIO_MAP[l.n]).sort(()=>Math.random()-0.5).slice(0,nLetter);
   const letterQs=letterPool.map(l=>({type:'letter',answer:l,tts:l.ar,label:l.nm}));
 
-  // 3 reading MCQ
-  const readPool=[...sect13].filter((_,i)=>i<120).sort(()=>Math.random()-0.5).slice(0,3);
+  const readPool=[...sect13].filter((_,i)=>i<120).sort(()=>Math.random()-0.5).slice(0,nRead);
   const readQs=readPool.map(w=>({type:'reading',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
 
-  // 2 drag-drop spelling from reading practice (prefer shorter words 2-4 letters)
   const ddPool=[...sect13].filter((_,i)=>i<120).filter(w=>{
     const clean=w.replace(/[ً-ٰٟٱ‌‍]/g,'');
     const l=[...clean].length;
     return l>=2&&l<=5;
-  }).sort(()=>Math.random()-0.5).slice(0,2);
+  }).sort(()=>Math.random()-0.5).slice(0,nDD);
   const ddQs=ddPool.map(w=>({type:'dragdrop',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
 
   quizQuestions=[...letterQs,...readQs,...ddQs].sort(()=>Math.random()-0.5);
   quizCurQ=0; quizCorrect=0; quizAnswered=false;
+  quizResults=new Array(QUIZ_TOTAL).fill(null);
+  quizChosen=new Array(QUIZ_TOTAL).fill(null);
+  quizOpts=new Array(QUIZ_TOTAL).fill(null);
   document.getElementById('quizModalOverlay').classList.remove('vis');
+  buildTracker();
   renderQuizQ();
+}
+
+function buildQuizCountBar(){
+  const sel=document.getElementById('qcSelect');
+  if(sel) sel.value=QUIZ_TOTAL;
+}
+
+function setQuizTotal(n){
+  QUIZ_TOTAL=n;
+  startQuiz();
+}
+
+function buildTracker(){
+  const dots=document.getElementById('qtDots');
+  if(!dots) return;
+  dots.innerHTML='';
+  for(let i=0;i<QUIZ_TOTAL;i++){
+    const d=document.createElement('div');
+    d.className='qt-dot'+(i===0?' current':'');
+    d.id='qtc-'+i;
+    d.title='Q'+(i+1);
+    d.onclick=(()=>{const idx=i;return()=>reviewQuestion(idx);})();
+    dots.appendChild(d);
+  }
+  const end=document.getElementById('qtEnd');
+  if(end) end.textContent='Q'+QUIZ_TOTAL;
+}
+
+function updateTracker(){
+  for(let i=0;i<QUIZ_TOTAL;i++){
+    const d=document.getElementById('qtc-'+i);
+    if(!d) continue;
+    d.className='qt-dot';
+    if(i===quizCurQ) d.classList.add('current');
+    else if(quizResults[i]===true) d.classList.add('correct');
+    else if(quizResults[i]===false) d.classList.add('wrong');
+  }
+}
+
+function reviewQuestion(idx){
+  if(quizResults[idx]===null){
+    const nextUnanswered=quizResults.findIndex(r=>r===null);
+    if(idx!==nextUnanswered) return;
+    quizCurQ=idx;
+    quizAnswered=false;
+    renderQuizQ();
+    updateTracker();
+    return;
+  }
+  quizCurQ=idx;
+  quizAnswered=true;
+  renderQuizQ();
+  setTimeout(()=>{
+    const q=quizQuestions[idx];
+    const chosen=quizChosen[idx];
+    if(q.type==='letter'||q.type==='reading'){
+      const grid=document.getElementById('quizGrid');
+      if(!grid) return;
+      grid.querySelectorAll('.quiz-opt').forEach(b=>{
+        b.disabled=true;
+        const txt=b.textContent.trim();
+        const isCorrect=(q.type==='letter'?txt===q.answer.ar:txt===q.answer);
+        const wasChosen=chosen&&txt===chosen;
+        if(isCorrect) b.classList.add('reveal');
+        if(wasChosen&&!isCorrect) b.classList.add('wrong');
+        if(wasChosen&&isCorrect) b.classList.add('correct');
+      });
+    }
+  },150);
 }
 
 function renderQuizQ(){
   const q=quizQuestions[quizCurQ];
   quizLetter=q;
   quizAnswered=false;
-  document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
+  document.getElementById('quizScore').textContent='Question '+(quizCurQ+1)+' of '+QUIZ_TOTAL+' • '+quizCorrect+' correct';
   document.getElementById('quizListenBtn').classList.remove('playing');
+  updateTracker();
 
-  // show/hide panels
   const grid=document.getElementById('quizGrid');
   const ddWrap=document.getElementById('ddWrap');
   grid.style.display=q.type==='dragdrop'?'none':'grid';
@@ -1008,36 +1121,39 @@ function renderQuizQ(){
 
   grid.innerHTML='';
 
-  let opts;
   if(q.type==='letter'){
-    // 4 Arabic letter options
-    const pool=L.filter(l=>l.n!==q.answer.n);
-    const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
-    opts=[{ar:q.answer.ar,id:q.answer.n},...wrong.map(l=>({ar:l.ar,id:l.n}))].sort(()=>Math.random()-0.5);
-    opts.forEach(opt=>{
+    if(!quizOpts[quizCurQ]){
+      const pool=L.filter(l=>l.n!==q.answer.n);
+      const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
+      quizOpts[quizCurQ]=[{ar:q.answer.ar,id:q.answer.n},...wrong.map(l=>({ar:l.ar,id:l.n}))].sort(()=>Math.random()-0.5);
+    }
+    const savedOpts=quizOpts[quizCurQ];
+    savedOpts.forEach(opt=>{
       const btn=document.createElement('button');
       btn.className='quiz-opt';
       btn.textContent=opt.ar;
-      btn.onclick=()=>quizAnswer(btn,opt.id===q.answer.n,opts.map(o=>o.id===q.answer.n),btn);
+      btn.onclick=()=>quizAnswer(btn,opt.id===q.answer.n,savedOpts.map(o=>o.id===q.answer.n),btn);
       grid.appendChild(btn);
     });
   } else {
-    // 4 reading practice word options
-    const pool=[...sect13].filter(w=>w!==q.answer).sort(()=>Math.random()-0.5).slice(0,3);
-    const readOpts=[q.answer,...pool].sort(()=>Math.random()-0.5);
-    readOpts.forEach(opt=>{
+    if(!quizOpts[quizCurQ]){
+      const pool=[...sect13].filter(w=>w!==q.answer).sort(()=>Math.random()-0.5).slice(0,3);
+      quizOpts[quizCurQ]=[q.answer,...pool].sort(()=>Math.random()-0.5);
+    }
+    const savedOpts=quizOpts[quizCurQ];
+    savedOpts.forEach(opt=>{
       const btn=document.createElement('button');
       btn.className='quiz-opt';
       btn.style.fontSize='32px';
       btn.textContent=opt;
-      btn.onclick=()=>quizAnswer(btn,opt===q.answer,readOpts.map(o=>o===q.answer),btn);
+      btn.onclick=()=>quizAnswer(btn,opt===q.answer,savedOpts.map(o=>o===q.answer),btn);
       grid.appendChild(btn);
     });
   }
 
-  // Auto-play the sound
   setTimeout(()=>quizPlay(),300);
 }
+
 
 function quizPlay(){
   const btn=document.getElementById('quizListenBtn');
@@ -1109,8 +1225,10 @@ function quizAnswer(btnEl, isCorrect, correctMask, _unused){
   if(isCorrect){ quizCorrect++; playCorrectSound(); }
   else{ playWrongSound(); }
 
-  // update score immediately after answering
-  document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
+  quizResults[quizCurQ]=isCorrect;
+  quizChosen[quizCurQ]=btnEl.textContent.trim();
+  document.getElementById('quizScore').textContent='Question '+(quizCurQ+1)+' of '+QUIZ_TOTAL+' • '+quizCorrect+' correct';
+  updateTracker();
 
   const grid=document.getElementById('quizGrid');
   const btns=grid.querySelectorAll('.quiz-opt');
@@ -1126,6 +1244,7 @@ function quizAnswer(btnEl, isCorrect, correctMask, _unused){
     else{ showQuizResult(); }
   },900);
 }
+
 
 function renderDragDrop(q){
   const letters=buildDDWord(q.answer);
@@ -1196,9 +1315,10 @@ function checkDDComplete(q,letters){
   const zones=document.getElementById('ddZones').querySelectorAll('.dd-zone');
   const filled=[...zones].filter(z=>z.dataset.filled).length;
   if(filled===letters.length){
-    // all correct
     quizCorrect++;
-    document.getElementById('quizScore').textContent=`Question ${quizCurQ+1} of ${QUIZ_TOTAL}  •  ${quizCorrect} correct`;
+    quizResults[quizCurQ]=true;
+    document.getElementById('quizScore').textContent='Question '+(quizCurQ+1)+' of '+QUIZ_TOTAL+'  \u2022  '+quizCorrect+' correct';
+    updateTracker();
     setTimeout(()=>{
       quizCurQ++;
       if(quizCurQ<QUIZ_TOTAL){ renderQuizQ(); }
@@ -1216,11 +1336,10 @@ function showQuizResult(){
   const passed=pct>=QUIZ_PASS;
   const modal=document.getElementById('quizModal');
   modal.className='quiz-modal'+(passed?' pass':' fail');
-  document.getElementById('quizModalScore').textContent=`${quizCorrect} / ${QUIZ_TOTAL}`;
-  document.getElementById('quizModalTitle').textContent=passed?'You passed!':'Not quite';
-  document.getElementById('quizModalMsg').textContent=`${Math.round(pct*100)}% correct. ${passed?'Great work — section complete!':'You need 80% to pass. Give it another go.'}`;
-  // hide try again if passed
-  modal.querySelectorAll('.btn')[0].style.display=passed?'none':'block';
+  document.getElementById('quizModalScore').textContent=quizCorrect+' / '+QUIZ_TOTAL;
+  document.getElementById('quizModalTitle').textContent=passed?'You passed!':'Try again';
+  document.getElementById('quizModalMsg').textContent=passed?'Great work — section complete!':'';
+  document.getElementById('quizTryAgainBtn').style.display=passed?'none':'block';
   document.getElementById('quizModalOverlay').classList.add('vis');
   if(passed){
     saveQuizPass('s14');
@@ -1229,6 +1348,7 @@ function showQuizResult(){
     launchConfetti();
   }
 }
+
 
 function showQuizPanel(show){
   document.getElementById('quizWrap').classList.toggle('vis',show);
@@ -1330,14 +1450,12 @@ loadLevel(0,0);
 </script>
   <!-- Quiz result modal -->
   <div class="quiz-modal-overlay" id="quizModalOverlay">
-    <div class="quiz-modal" id="quizModal">
-      <div class="score-big" id="quizModalScore"></div>
+    <div class="quiz-modal" id="quizModal" style="position:relative;">
+      <button onclick="closeQuizModal();" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2);">&#x2715;</button>
+      <div class="score-big" id="quizModalScore" style="color:var(--text);"></div>
       <h3 id="quizModalTitle"></h3>
-      <p id="quizModalMsg"></p>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn" onclick="closeQuizModal();startQuiz();">Try Again</button>
-        <button class="btn" onclick="closeQuizModal();" style="background:var(--blue);color:#fff;border-color:var(--blue);">Done</button>
-      </div>
+      <p id="quizModalMsg" style="font-size:0.9rem;color:var(--text2);"></p>
+      <button class="btn" id="quizTryAgainBtn" onclick="closeQuizModal();startQuiz();" style="margin-top:4px;width:100%;">Try Again</button>
     </div>
   </div>
 </body>
