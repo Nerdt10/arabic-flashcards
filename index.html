@@ -34,6 +34,12 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 /* SIDEBAR */
 .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:#fff;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width 0.25s ease,min-width 0.25s ease;min-height:0;}
 .sidebar.collapsed{width:0;min-width:0;overflow:hidden;}
+.sidebar-overlay{display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,0.3);}
+.sidebar-overlay.vis{display:block;}
+@media(max-width:640px){
+  .sidebar{position:fixed;left:0;top:0;height:100vh;z-index:100;}
+  .main{width:100%;}
+}
 .sidebar-logo{padding:12px 14px 8px;border-bottom:1px solid #e0e0e0;background:#fff;text-align:center;}
 .sidebar-logo h1{font-size:0.82rem;font-weight:700;color:#222;line-height:1.3;}
 .sidebar-logo p{font-size:0.67rem;color:#999;margin-top:2px;}
@@ -223,6 +229,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 
 <!-- SIDEBAR -->
 <div class="sidebar" id="sidebar"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <!-- MAIN -->
 <div class="main">
@@ -631,7 +638,10 @@ function startScrub(e){
 }
 
 function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  sb.classList.toggle('collapsed');
+  ov.classList.toggle('vis',!sb.classList.contains('collapsed'));
 }
 
 function buildSidebar(){
