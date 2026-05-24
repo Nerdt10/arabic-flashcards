@@ -1302,11 +1302,64 @@ function renderDragDrop(q){
     tile.textContent=l;
     tile.draggable=true;
     tile.dataset.letter=l;
+    // Mouse drag
     tile.addEventListener('dragstart',e=>{
       e.dataTransfer.setData('tileId',id);
       tile.classList.add('dragging');
     });
     tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
+
+    // Touch drag
+    tile.addEventListener('touchstart',e=>{
+      e.preventDefault();
+      tile.classList.add('dragging');
+      const t=e.touches[0];
+      tile._clone=tile.cloneNode(true);
+      tile._clone.style.cssText='position:fixed;opacity:0.85;pointer-events:none;z-index:9999;width:'+tile.offsetWidth+'px;height:'+tile.offsetHeight+'px;display:flex;align-items:center;justify-content:center;font-family:Scheherazade New,serif;font-size:36px;direction:rtl;background:var(--white);border:2px solid var(--blue);border-radius:8px;';
+      tile._clone.textContent=l;
+      document.body.appendChild(tile._clone);
+      tile._clone.style.left=(t.clientX-tile.offsetWidth/2)+'px';
+      tile._clone.style.top=(t.clientY-tile.offsetHeight/2)+'px';
+    },{passive:false});
+
+    tile.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      const t=e.touches[0];
+      if(tile._clone){
+        tile._clone.style.left=(t.clientX-tile._clone.offsetWidth/2)+'px';
+        tile._clone.style.top=(t.clientY-tile._clone.offsetHeight/2)+'px';
+      }
+      document.querySelectorAll('.dd-zone').forEach(z=>z.classList.remove('over'));
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const zone=el&&el.closest('.dd-zone');
+      if(zone&&!zone.dataset.filled) zone.classList.add('over');
+    },{passive:false});
+
+    tile.addEventListener('touchend',e=>{
+      e.preventDefault();
+      tile.classList.remove('dragging');
+      if(tile._clone){document.body.removeChild(tile._clone);tile._clone=null;}
+      const t=e.changedTouches[0];
+      document.querySelectorAll('.dd-zone').forEach(z=>z.classList.remove('over'));
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      const zone=el&&el.closest('.dd-zone');
+      if(!zone||zone.dataset.filled) return;
+      const dropped=tile.dataset.letter;
+      const correct=zone.dataset.correct;
+      if(dropped===correct){
+        zone.textContent=zone.dataset.posForm;
+        zone.classList.add('correct');
+        zone.dataset.filled='1';
+        tile.classList.add('used');
+        playCorrectSound();
+        checkDDComplete(quizLetter,buildDDWord(quizLetter.answer));
+      } else {
+        zone.classList.add('wrong');
+        playWrongSound();
+        setTimeout(()=>zone.classList.remove('wrong'),600);
+      }
+    },{passive:false});
+
     tiles.appendChild(tile);
   });
 }
