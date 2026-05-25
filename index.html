@@ -108,12 +108,12 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .progress-label{font-size:0.75rem;color:var(--text2);min-width:46px;text-align:right;font-weight:600;}
 
 /* FLASHCARD */
-.flashcard{background:var(--white);border:1.5px solid var(--border);border-radius:10px;width:100%;min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:2rem 1.5rem 2rem;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;user-select:none;}
+.flashcard{background:var(--white);border:1.5px solid var(--border);border-radius:10px;width:100%;min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:2rem 1.5rem 2rem;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;user-select:none;-webkit-tap-highlight-color:transparent;}
 .flashcard:hover{border-color:var(--blue-dark);box-shadow:0 2px 12px rgba(41,128,185,0.08);}
 .flashcard:active{transform:scale(0.99);}
 .flashcard.playing{border-color:var(--orange);box-shadow:0 0 0 3px rgba(230,126,34,0.12);}
 .card-badge{position:absolute;top:10px;left:10px;background:var(--orange);color:#fff;font-size:0.62rem;font-weight:700;padding:2px 7px;border-radius:3px;}
-.card-arabic{font-family:'Scheherazade New',serif;font-size:96px;line-height:1;color:var(--text);direction:rtl;text-align:center;transition:opacity 0.15s;margin-bottom:20px;}
+.card-arabic{font-family:'Scheherazade New',serif;font-size:96px;line-height:1;color:#1a1a2e !important;direction:rtl;text-align:center;transition:opacity 0.15s;margin-bottom:20px;-webkit-tap-highlight-color:transparent;}
 .card-arabic.sm{font-size:64px;}
 .card-arabic.xs{font-size:44px;}
 .card-arabic.xxs{font-size:32px;}
@@ -126,7 +126,7 @@ body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text)
 .card-video-btn:hover{background:var(--orange-light);border-color:var(--orange);}
 .card-video-mode{display:none;flex-direction:column;align-items:stretch;position:absolute;inset:0;border-radius:10px;overflow:hidden;z-index:1;background:#111;}
 .card-video-mode.active{display:flex;}
-.card-letter-mode{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;}
+.card-letter-mode{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;-webkit-tap-highlight-color:transparent;}
 .card-letter-mode.hidden{display:none;}
 .video-player{width:100%;flex:1;background:#111;overflow:hidden;position:relative;display:flex;}
 .video-player video{width:100%;height:100%;display:block;object-fit:contain;flex:1;}
@@ -391,7 +391,7 @@ const sect13 = [
   'شم','صم','يم','لج','عج','حج','بع','يغ','بص','نص','قض','بس',
   'يس','قق','شق','لك','فك','كف','قك','كق','كو','وك','ول','لو',
   'بة','نة','تة','بلب','بعد','عبد','لهب','يهب','ثمن','فيه','خلق','فلق',
-  'رغد','وعد','وجد','بلغ','سمع','غري','غبر','عرش','حرش','مطر','شكر','ظلل',
+  'رغد','وعد','وجد','بلغ','سمع','غير','غبر','عرش','حرش','مطر','شكر','ظلل',
   'بسم','ال‌له','اللهم','لله','له','لهم','فتح','نعبد','مكر','نستعين',
   'لفلك','هى','عبس','نبى','فمكث','نصر','الهدهد','يعلمون',
   'حمن','حمد','حما','حمو','بحمد','محمد'
@@ -1392,7 +1392,10 @@ function checkDDComplete(q,letters){
     updateTracker();
     setTimeout(()=>{
       quizCurQ++;
-      if(quizCurQ<QUIZ_TOTAL){ renderQuizQ(); }
+      if(quizCurQ<QUIZ_TOTAL){ 
+        renderQuizQ();
+        setTimeout(()=>quizPlay(), 500);
+      }
       else{ showQuizResult(); }
     },900);
   }
