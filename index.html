@@ -391,7 +391,7 @@ const sect13 = [
   'شم','صم','يم','لج','عج','حج','بع','يغ','بص','نص','قض','بس',
   'يس','قق','شق','لك','فك','كف','قك','كق','كو','وك','ول','لو',
   'بة','نة','تة','بلب','بعد','عبد','لهب','يهب','ثمن','فيه','خلق','فلق',
-  'رغد','وعد','وجد','بلغ','سمع','غير','غبر','عرش','حرش','مطر','شكر','ظلل',
+  'رغد','وعد','وجد','بلغ','سمع','غير','عشر','حشر','مطر','شكر','ظلل',
   'بسم','ال‌له','اللهم','لله','له','لهم','فتح','نعبد','مكر','نستعين',
   'لفلك','هى','عبس','نبى','فمكث','نصر','الهدهد','يعلمون',
   'حمن','حمد','حما','حمو','بحمد','محمد'
@@ -1015,7 +1015,7 @@ function getPosForm(letterAr,pos,wordLen){
 }
 function buildDDWord(word){
   // split word into individual letters (skip diacritics/harakat)
-  const diacritics=/[ً-ٰٟٱ‌‍]/g;
+  const diacritics=/[ً-ٰٟٱ‌‍]/g;
   const clean=word.replace(diacritics,'');
   const letters=[...clean]; // spread handles multi-codepoint chars
   return letters;
@@ -1033,7 +1033,7 @@ function startQuiz(){
   const readQs=readPool.map(w=>({type:'reading',answer:w,tts:w,label:w,readingIdx:sect13.indexOf(w)+1}));
 
   const ddPool=[...sect13].filter((_,i)=>i<120).filter(w=>{
-    const clean=w.replace(/[ً-ٰٟٱ‌‍]/g,'');
+    const clean=w.replace(/[ً-ٰٟٱ‌‍]/g,'');
     const l=[...clean].length;
     return l>=2&&l<=5;
   }).sort(()=>Math.random()-0.5).slice(0,nDD);
