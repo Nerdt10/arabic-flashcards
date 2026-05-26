@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Arabic Reading Proficiency</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
 <link href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>
@@ -31,15 +31,40 @@
 }
 body{font-family:'Cairo',sans-serif;background:var(--offwhite);color:var(--text);display:flex;min-height:100vh;overflow:hidden;}
 
-/* SIDEBAR */
+/* SIDEBARs */
 .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:#fff;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width 0.25s ease,min-width 0.25s ease;min-height:0;}
 .sidebar.collapsed{width:0;min-width:0;overflow:hidden;}
 .sidebar-overlay{display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,0.3);}
 .sidebar-overlay.vis{display:block;}
 @media(max-width:768px){
-  .sidebar{position:fixed;left:0;top:0;height:100vh;z-index:100;transform:translateX(0);transition:transform 0.25s ease;}
+  body{
+    overflow-x:hidden;
+    overflow-y:auto;
+    min-height:100dvh;
+    -webkit-overflow-scrolling:touch;
+  }
+  .sidebar{position:fixed;left:0;top:0;height:100dvh;z-index:100;transform:translateX(0);transition:transform 0.25s ease;}
   .sidebar.collapsed{transform:translateX(-100%);width:var(--sidebar-w);min-width:var(--sidebar-w);}
-  .main{width:100%;margin-left:0 !important;}
+  .main{
+    width:100%;
+    margin-left:0 !important;
+    overflow:visible;
+    min-height:auto;
+    flex:none;
+  }
+  .topbar{
+    padding:12px 16px;
+    padding-top:calc(12px + env(safe-area-inset-top, 0px));
+  }
+  .topbar-title h2{font-size:1rem;}
+  .content-area{
+    margin:0 auto;
+    padding:16px 16px calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+  .card-arabic{font-size:72px;}
+  .card-arabic.sm{font-size:52px;}
+  .card-arabic.xs{font-size:38px;}
+  .quiz-opt{font-size:40px;min-height:76px;padding:14px 10px 18px;}
 }
 .sidebar-logo{padding:12px 14px 8px;border-bottom:1px solid #e0e0e0;background:#fff;text-align:center;}
 .sidebar-logo h1{font-size:0.82rem;font-weight:700;color:#222;line-height:1.3;}
@@ -593,7 +618,7 @@ const LEVELS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let curLvl=0,curSub=0,curIdx=0,mode='seq',order=[],autoTimer=null,autoDelay=3000,rep=1,autoReps=0,curAudio=null;
+let curLvl=0,curSub=0,curIdx=0,mode='seq',order=[],autoTimer=null,autoDelay=3000,rep=1,autoReps=0,curAudio=null,audioGen=0;
 
 // ── SIDEBAR BUILD ─────────────────────────────────────────────────────────────
 function hideReveal(){
@@ -822,9 +847,29 @@ function render(){
 
 // ── AUDIO ─────────────────────────────────────────────────────────────────────
 function stopAudio(){
+  audioGen++;
   if(curAudio){curAudio.pause();curAudio.currentTime=0;curAudio=null;}
-  if('speechSynthesis'in window)window.speechSynthesis.cancel();
   document.getElementById('card').classList.remove('playing');
+}
+
+function playMp3(src, onEnd){
+  const gen=audioGen;
+  const a=new Audio(src);
+  curAudio=a;
+  let started=false;
+  a.addEventListener('playing',()=>{started=true;},{once:true});
+  a.onended=()=>{if(gen===audioGen) onEnd();};
+  a.onerror=()=>{
+    if(gen!==audioGen||started) return;
+    onEnd();
+  };
+  a.play().catch(()=>{
+    setTimeout(()=>{
+      if(gen!==audioGen||started||!a.paused||a.currentTime>0) return;
+      onEnd();
+    },300);
+  });
+  return a;
 }
 
 const AUDIO_MAP = {1: "01_alef.mp3", 2: "02_ba.mp3", 3: "03_ta.mp3", 4: "04_tha.mp3", 5: "05_jeem.mp3", 6: "06_ha.mp3", 7: "07_kha.mp3", 8: "08_dal.mp3", 9: "09_thal.mp3", 10: "10_ra.mp3", 11: "11_zay.mp3", 12: "12_seen.mp3", 13: "13_sheen.mp3", 14: "14_sad.mp3", 15: "15_dad.mp3", 16: "16_ta2.mp3", 17: "17_dha.mp3", 18: "18_ain.mp3", 19: "19_ghain.mp3", 20: "20_fa.mp3", 21: "21_qaf.mp3", 22: "22_kaf.mp3", 23: "23_lam.mp3", 24: "24_meem.mp3", 25: "25_noon.mp3", 26: "26_ha2.mp3", 27: "27_waw.mp3", 28: "28_ya.mp3"};
@@ -843,38 +888,14 @@ function playAudio(){
   const cardEl=document.getElementById('card');
   // Level 1 sublevel 0 = use MP3 files
   const readingIdx = getSL().reading ? (curIdx+1) : null;
+  const endPlay=()=>cardEl.classList.remove('playing');
   if(curLvl===0&&card.num&&AUDIO_MAP[card.num]){
-    const a=new Audio('audio/'+AUDIO_MAP[card.num]);
-    curAudio=a;
     cardEl.classList.add('playing');
-    a.play().catch(()=>tts(card));
-    a.onended=()=>cardEl.classList.remove('playing');
-    a.onerror=()=>{cardEl.classList.remove('playing');tts(card);};
+    playMp3('audio/'+AUDIO_MAP[card.num], endPlay);
   } else if(getSL().reading && readingIdx && READING_MAP[readingIdx]){
-    const a=new Audio('reading/'+READING_MAP[readingIdx]);
-    curAudio=a;
     cardEl.classList.add('playing');
-    a.play().catch(()=>tts(card));
-    a.onended=()=>cardEl.classList.remove('playing');
-    a.onerror=()=>{cardEl.classList.remove('playing');tts(card);};
-  } else {
-    tts(card);
+    playMp3('reading/'+READING_MAP[readingIdx], endPlay);
   }
-}
-
-function tts(card){
-  if(!('speechSynthesis'in window))return;
-  window.speechSynthesis.cancel();
-  const cardEl=document.getElementById('card');
-  const txt=card.tts||card.ar||card.nm||'';
-  const utt=new SpeechSynthesisUtterance(txt);
-  utt.lang='ar-SA';utt.rate=0.75;
-  const voices=window.speechSynthesis.getVoices();
-  const arV=voices.find(v=>v.lang.startsWith('ar'));
-  if(arV)utt.voice=arV;
-  cardEl.classList.add('playing');
-  utt.onend=()=>cardEl.classList.remove('playing');
-  window.speechSynthesis.speak(utt);
 }
 
 function toggleVideo(e){
@@ -988,7 +1009,12 @@ function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.ra
 const QUIZ_OPTIONS = [10,15,20,25];
 let QUIZ_TOTAL = 10;
 const QUIZ_PASS = 0.8;
-let quizQuestions=[], quizCurQ=0, quizCorrect=0, quizAnswered=false, quizLetter=null, quizResults=[], quizChosen=[], quizOpts=[];
+let quizQuestions=[], quizCurQ=0, quizCorrect=0, quizAnswered=false, quizLetter=null, quizResults=[], quizChosen=[], quizOpts=[], quizPlayTimer=null;
+
+function scheduleQuizPlay(){
+  if(quizPlayTimer) clearTimeout(quizPlayTimer);
+  quizPlayTimer=setTimeout(()=>{quizPlayTimer=null;quizPlay();},300);
+}
 
 function loadQuizProgress(){
   try{ return JSON.parse(localStorage.getItem('quizProgress')||'{}'); } catch(e){ return {}; }
@@ -1133,108 +1159,98 @@ function renderQuizQ(){
 
   if(q.type==='dragdrop'){
     renderDragDrop(q);
-    setTimeout(()=>quizPlay(),300);
-    return;
-  }
-
-  grid.innerHTML='';
-
-  if(q.type==='letter'){
-    if(!quizOpts[quizCurQ]){
-      const pool=L.filter(l=>l.n!==q.answer.n);
-      const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
-      quizOpts[quizCurQ]=[{ar:q.answer.ar,id:q.answer.n},...wrong.map(l=>({ar:l.ar,id:l.n}))].sort(()=>Math.random()-0.5);
-    }
-    const savedOpts=quizOpts[quizCurQ];
-    savedOpts.forEach(opt=>{
-      const btn=document.createElement('button');
-      btn.className='quiz-opt';
-      btn.textContent=opt.ar;
-      btn.onclick=()=>quizAnswer(btn,opt.id===q.answer.n,savedOpts.map(o=>o.id===q.answer.n),btn);
-      grid.appendChild(btn);
-    });
   } else {
-    if(!quizOpts[quizCurQ]){
-      const pool=[...sect13].filter(w=>w!==q.answer).sort(()=>Math.random()-0.5).slice(0,3);
-      quizOpts[quizCurQ]=[q.answer,...pool].sort(()=>Math.random()-0.5);
+    grid.innerHTML='';
+
+    if(q.type==='letter'){
+      if(!quizOpts[quizCurQ]){
+        const pool=L.filter(l=>l.n!==q.answer.n);
+        const wrong=[...pool].sort(()=>Math.random()-0.5).slice(0,3);
+        quizOpts[quizCurQ]=[{ar:q.answer.ar,id:q.answer.n},...wrong.map(l=>({ar:l.ar,id:l.n}))].sort(()=>Math.random()-0.5);
+      }
+      const savedOpts=quizOpts[quizCurQ];
+      savedOpts.forEach(opt=>{
+        const btn=document.createElement('button');
+        btn.className='quiz-opt';
+        btn.textContent=opt.ar;
+        btn.onclick=()=>quizAnswer(btn,opt.id===q.answer.n,savedOpts.map(o=>o.id===q.answer.n),btn);
+        grid.appendChild(btn);
+      });
+    } else {
+      if(!quizOpts[quizCurQ]){
+        const pool=[...sect13].filter(w=>w!==q.answer).sort(()=>Math.random()-0.5).slice(0,3);
+        quizOpts[quizCurQ]=[q.answer,...pool].sort(()=>Math.random()-0.5);
+      }
+      const savedOpts=quizOpts[quizCurQ];
+      savedOpts.forEach(opt=>{
+        const btn=document.createElement('button');
+        btn.className='quiz-opt';
+        btn.style.fontSize='32px';
+        btn.textContent=opt;
+        btn.onclick=()=>quizAnswer(btn,opt===q.answer,savedOpts.map(o=>o===q.answer),btn);
+        grid.appendChild(btn);
+      });
     }
-    const savedOpts=quizOpts[quizCurQ];
-    savedOpts.forEach(opt=>{
-      const btn=document.createElement('button');
-      btn.className='quiz-opt';
-      btn.style.fontSize='32px';
-      btn.textContent=opt;
-      btn.onclick=()=>quizAnswer(btn,opt===q.answer,savedOpts.map(o=>o===q.answer),btn);
-      grid.appendChild(btn);
-    });
   }
 
-  setTimeout(()=>quizPlay(),300);
+  scheduleQuizPlay();
 }
 
 
 function quizPlay(){
+  if(quizPlayTimer){clearTimeout(quizPlayTimer);quizPlayTimer=null;}
   const btn=document.getElementById('quizListenBtn');
   if(!quizLetter) return;
+  stopAudio();
   btn.classList.add('playing');
   const q=quizLetter;
+  const endPlay=()=>btn.classList.remove('playing');
   if(q.type==='letter'&&AUDIO_MAP[q.answer.n]){
-    // isolated letter — use MP3
-    const a=new Audio('audio/'+AUDIO_MAP[q.answer.n]);
-    a.play().catch(()=>{btn.classList.remove('playing');ttsTxt(q.answer.ar);});
-    a.onended=()=>btn.classList.remove('playing');
-    a.onerror=()=>{btn.classList.remove('playing');ttsTxt(q.answer.ar);};
+    playMp3('audio/'+AUDIO_MAP[q.answer.n], endPlay);
   } else if((q.type==='reading'||q.type==='dragdrop')&&q.readingIdx&&READING_MAP[q.readingIdx]){
-    // reading practice or drag-drop word — use reading MP3
-    const a=new Audio('reading/'+READING_MAP[q.readingIdx]);
-    a.play().catch(()=>{btn.classList.remove('playing');ttsTxt(q.tts);});
-    a.onended=()=>btn.classList.remove('playing');
-    a.onerror=()=>{btn.classList.remove('playing');ttsTxt(q.tts);};
+    playMp3('reading/'+READING_MAP[q.readingIdx], endPlay);
   } else {
-    ttsTxt(q.tts);
-    btn.classList.remove('playing');
+    endPlay();
   }
 }
 
-function playCorrectSound(){
+let feedbackCtx=null;
+
+function getFeedbackCtx(){
+  if(!feedbackCtx){
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx) return null;
+    feedbackCtx=new Ctx();
+  }
+  return feedbackCtx;
+}
+
+function playFeedback(notes){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [[261,0],[329,0.1],[392,0.2]].forEach(([freq,offset])=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sine';o.frequency.setValueAtTime(freq,ctx.currentTime+offset);
-      g.gain.setValueAtTime(0,ctx.currentTime+offset);
-      g.gain.linearRampToValueAtTime(0.12,ctx.currentTime+offset+0.025);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+offset+0.7);
-      o.start(ctx.currentTime+offset);o.stop(ctx.currentTime+offset+0.75);
-    });
+    const ctx=getFeedbackCtx();
+    if(!ctx) return;
+    const play=()=>{
+      notes.forEach(([freq,offset,dur])=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sine';o.frequency.setValueAtTime(freq,ctx.currentTime+offset);
+        g.gain.setValueAtTime(0,ctx.currentTime+offset);
+        g.gain.linearRampToValueAtTime(freq>=240?0.2:0.12,ctx.currentTime+offset+0.025);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+offset+dur);
+        o.start(ctx.currentTime+offset);o.stop(ctx.currentTime+offset+dur+0.04);
+      });
+    };
+    if(ctx.state==='suspended') ctx.resume().then(play).catch(()=>{});
+    else play();
   }catch(e){}
+}
+
+function playCorrectSound(){
+  playFeedback([[261,0,0.7],[329,0.1,0.7],[392,0.2,0.7]]);
 }
 
 function playWrongSound(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [[300,0],[240,0.16]].forEach(([freq,offset])=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sine';o.frequency.setValueAtTime(freq,ctx.currentTime+offset);
-      g.gain.setValueAtTime(0,ctx.currentTime+offset);
-      g.gain.linearRampToValueAtTime(0.2,ctx.currentTime+offset+0.02);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+offset+0.3);
-      o.start(ctx.currentTime+offset);o.stop(ctx.currentTime+offset+0.34);
-    });
-  }catch(e){}
-}
-
-function ttsTxt(txt){
-  if(!('speechSynthesis'in window))return;
-  window.speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(txt);
-  utt.lang='ar-SA';utt.rate=0.75;
-  const voices=window.speechSynthesis.getVoices();
-  const arV=voices.find(v=>v.lang.startsWith('ar'));
-  if(arV)utt.voice=arV;
-  window.speechSynthesis.speak(utt);
+  playFeedback([[300,0,0.3],[240,0.16,0.3]]);
 }
 
 function quizAnswer(btnEl, isCorrect, correctMask, _unused){
@@ -1394,7 +1410,6 @@ function checkDDComplete(q,letters){
       quizCurQ++;
       if(quizCurQ<QUIZ_TOTAL){ 
         renderQuizQ();
-        setTimeout(()=>quizPlay(), 500);
       }
       else{ showQuizResult(); }
     },900);
@@ -1433,7 +1448,6 @@ function showQuizPanel(show){
   document.getElementById('doneBanner').style.display=show?'none':'';
 }
 
-window.speechSynthesis&&window.speechSynthesis.getVoices();
 initSidebar();
 buildSidebar();
 loadLevel(0,0);
